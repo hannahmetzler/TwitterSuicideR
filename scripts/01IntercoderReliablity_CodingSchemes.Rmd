@@ -1,0 +1,728 @@
+---
+title: "Intercoder Reliability Suicide Tweets"
+author: "Hannah Metzler"
+date: "30/7/2020"
+output: 
+  pdf_document:
+    df_print: kable
+    keep_tex: true
+url_colour: blue
+always_allow_html: yes
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, message=FALSE, warning=FALSE)
+Sys.setlocale("LC_ALL", 'en_US.UTF-8')
+options(scipen=99)
+library(dplyr)
+library(stringr)
+library(irr)
+library(xfun)
+library(caret)
+library(forcats)
+library(RColorBrewer)
+```
+
+# Coding a sample of 500 tweets, 100 per category predicted with Infersent
+
+These predictions were based on training data categorized into 4 tweet types of interest, and one off-topic category: 
+
+* Papageno
+* Werther
+* Awareness
+* Prevention
+* Off-topic
+
+Data files are labelled with names of coders (Hannah/Thomas), the round of labelling, and the number of categories of interest into which tweets were split. Round 1 was a first independent labelling, round 2 includes re-evaluations of tweets after discussion between coders and further specifications of the definitions of each category.  
+
+*Round 1* was done based on the following category definitions, which are referred to as "4categories" in the data files (training data  in the file "558_training_posts_05162020.xlsx") had been coded like this too): 
+
+* Papageno: Information that has been shown to decrease suicide rates (Pagageno effect) includes stories  about coping with suicide related problems, about recovery, stories that give hope, for instance having suicidal thoughts but still being alive, finding alternative strategies to suicide, stories about coping with the loss of a close person through suicide… We used a broad definition: any kind of coping or suicidal thoughts counts: coping with suicidal thoughts, coping after an attempt, coping with a loss, only suicidal thoughts are enough to count as Papageno (because the person is still alive). 
+* Werther: Narrow definition: News about cases, and about methods (jumping, hanging etc.) Overlaps with awareness category, but the difference is: It is really linked to an increases. 
+* Prevention: Focus on action possibilities for individuals or the society, calls for prevention, Instruction to the reader about how to prevent suicide of others or him/herself. 
+* Awareness: Tweets with intention to open eyes for the problem, tweets about sexual violence, veterans, traumata being linked to suicide. 
+    - Awareness tweets probably do not help people at risk, but there is not enough research yet. 
+    - In contrast to prevention: awareness tweets are attempts of encouragement and empowerment
+    - In contrast to Werther: awareness tweets are not about specific individual cases of suicide
+* Off-topic: everything else. 
+
+Thomas developed a more fine-grained coding scheme based on which we later developed a scheme with 6 categories of interest (see below). Therefore, his data is labelled as "6 categories", and his categories are recoded into 4 categories before calculating reliability. 
+
+*Round 2*: We developed more specific definitions for each category: 
+
+* Papageno: Individual experiences, including positive and negative stories
+    - About individual suicidal thoughts or suicide attempt from the perspective of an affected individual, or from bereaved individuals. 
+    - General statements on suicidal thoughts do not qualify
+    - Tweets about someone’s live being saved eg by bystanders or first responders go into prevention.
+    - Any thought that is really unclear in terms of authenticity should go under off-topic (sarcastic, using suicidal to exagerate an emotional experience. 
+* Werther: about an individual suicide or suicide attempt. If it is about prevention or awareness but still obviously related to a RECENT (check date of tweet) suicide / attempt, code here. Even if lifeline is mentioned, if a suicide is tweeted, it is Werther. 
+    - If recent clusters of suicide (timely or geographical) are mentioned, code here. 
+* Awareness: Tweets that might want to help prevent but give no specific recommendation on what to do and how. 
+    - Often includes research findings that do not explicitely say what an individual can do to prevent suicide. These research findings do not need to be written with the intention to help, pure information/updates are awareness tweets too. 
+    - General broad recommendation actions go here: donations, prayers, being there for someone, telling people that they matter, „call me“ without providing a phone number, taking a course/class/seminar about suicide prevention. In contrast, specific instructions to not leave people alone in a crisis situation qualify as prevention. 
+    - See differentiation below for prevention. 
+* Prevention: tweet is on prevention on individual level or public health (eg safety nets on bridge). Needs to state something that can be done by an individual reading the text, or about a measure that has been implemented (eg safety net). 
+    - Tweets often have a help-line in focus. We only code as prevention if a tweet mentioning someone to contact provides the help-line number or a user specifically asks people to contact them. 
+    - If no specific suggestion is made on what someone can do it is rather awarenss than prevention. This also applies to events eg „prevention week“ without any specification about what specifically can be done—awareness. 
+    - General broad recommendations that don‘t provide concrete instructions on what to do are awareness. Listing warning signs of suicide or saying „what to watch out“ are awareness not prevention because do not say how to do it. 
+* Off-topic:  
+      - not related to topic of suicide / suicidality /prevention or
+    - anything not clearly related to any other category should go here
+    - Flippant remarks, suspected irony or suspected exaggerations
+    - Euthanasia tweets are irrelevant
+    - Suicide bombing included here
+    - Murder-suicides here
+    
+\newpage
+    
+# Round 1 intereliability
+
+```{r, round 1, results="hide"}
+
+#original codings before discussing new rules on June 26, 2020
+dfh <- read.csv('../model_predictions_reliability/round1_500_suicide_Hannah_4categories.csv', stringsAsFactors = F) #data frame hannah, includes predictions
+dft <- read.csv('../model_predictions_reliability/round1_500_suicide_Thomas_6categories.csv', stringsAsFactors=F)  %>% #data frame thomas
+   mutate(Thomas = recode(Thomas, Irrelevant = "Off-topic"))
+
+unique(dft$Thomas)
+unique(dfh$Hannah4)
+
+#join data frames
+df0 <- dfh %>% inner_join(dft) %>% 
+  filter(complete.cases(predicted4)) #delete NAs for predicted classes 
+
+names(df0) <- tolower(names(df0))
+str(df0)
+
+#transform thomas different notes into to 4 categories
+df <- df0 %>%  
+  mutate(thomas4 = str_replace_all(thomas, "Papageno.*", "Papageno"), 
+         thomas4 = str_replace_all(thomas4, "Werther.*", "Werther"))
+
+#check if categories match
+unique(df$thomas4)
+unique(df$hannah4)
+unique(df$predicted4)
+```
+## Agreement between Hannah and Thomas
+
+```{r, cohens kappa interrater H-T 1}
+
+#calculate how many of predicted are correct
+# calculate how many of hannah fit predicted
+(xtabs(~hannah4+thomas4, df))
+#cohen's kappa
+irr::kappa2(df[c("thomas4", "hannah4")])
+```
+
+<!-- Examples for tweets where Hannah and Thomas don't agree:  -->
+
+```{r}
+# notagree <- subset(df, hannah4!=thomas4)#%>% 
+#     filter(xfun::is_ascii(contents)== T) #remove all tweets with non-asci characters (latex cannot print them)
+#    
+# #replace non unice characters with space
+#   notagree$contents <- iconv(notagree$contents, from = "UTF-8", to = "ASCII", sub = "")
+# #write.csv(file='../output/tweets_noagreement.csv', notagree[c("hannah4", "thomas4", "contents")])
+
+```
+
+
+## Agreement between Hannah and Predicted
+
+```{r}
+xtabs(~hannah4+predicted4, df)
+irr::kappa2(df[c("hannah4", "predicted4")])
+```
+
+## Agreement between Thomas and Predicted
+
+```{r}
+xtabs(~thomas4+predicted4, df)
+irr::kappa2(df[c("thomas4", "predicted4")])
+```
+
+
+
+
+\newpage
+  
+# Round 2 intereliability
+
+```{r, round 2, results="hide"}
+#updated codings implementing the new coding rules - see Coding system Tweets 200630  
+  dfh <- read.csv('../model_predictions_reliability/round2_500_suicide_Hannah_4categories.csv', stringsAsFactors = F) #data frame hannah, includes predictions
+  dft <- read.csv('../model_predictions_reliability/round2_500_suicide_Thomas_6categories.csv', stringsAsFactors=F)  %>% #data frame thomas
+    mutate(Thomas = recode(Thomas, Irrelevant = "Off-topic"))
+
+unique(dft$Thomas)
+unique(dfh$Hannah4)
+
+#join data frames
+df0 <- dfh %>% inner_join(dft) %>% 
+  filter(complete.cases(predicted4)) #delete NAs for predicted classes 
+
+names(df0) <- tolower(names(df0))
+str(df0)
+
+#transform thomas different notes into to 4 categories
+df <- df0 %>%  
+  mutate(thomas4 = str_replace_all(thomas, "Papageno.*", "Papageno"), 
+         thomas4 = str_replace_all(thomas4, "Werther.*", "Werther"))
+
+#check if categories match
+unique(df$thomas4)
+unique(df$hannah4)
+unique(df$predicted4)
+```
+## Agreement between Hannah and Thomas
+
+```{r, cohens kappa interrater H-T}
+
+#calculate how many of predicted are correct
+# calculate how many of hannah fit predicted
+xtabs(~hannah4+thomas4, df)
+#cohen's kappa
+irr::kappa2(df[c("thomas4", "hannah4")])
+```
+
+<!-- Examples for tweets where Hannah and Thomas don't agree:  -->
+
+```{r}
+# notagree <- subset(df, hannah4!=thomas4)#%>% 
+#     filter(xfun::is_ascii(contents)== T) #remove all tweets with non-asci characters (latex cannot print them)
+#    
+# #replace non unice characters with space
+#   notagree$contents <- iconv(notagree$contents, from = "UTF-8", to = "ASCII", sub = "")
+# #write.csv(file='../output/tweets_noagreement.csv', notagree[c("hannah4", "thomas4", "contents")])
+
+```
+
+
+## Agreement between Hannah and Predicted
+
+```{r}
+xtabs(~hannah4+predicted4, df)
+irr::kappa2(df[c("hannah4", "predicted4")])
+```
+
+## Agreement between Thomas and Predicted
+
+```{r}
+xtabs(~thomas4+predicted4, df)
+irr::kappa2(df[c("thomas4", "predicted4")])
+```
+
+
+
+# Updating  the coding scheme to 6 categories: 
+
+We split Papageno and Werther tweets into two categories each, based on if evidence is available to show that this kind of tweet should be beneficial or harmful. This results in 6 categories of interest, plus off-topic tweets.
+
+* Papageno positive: classic positive recovery / hope tweets  (there is evidence for this being beneficial) 
+* Papageno negative: negative thoughts about suicide, negative experience of bereaved
+* Werther celebrity: suicide of a celebrity  (there is evidence for this being harmful) : 
+      - Example: Every suicde is one too many. Kate Spade and Antony RIP. Life is worth living.
+* Werther non-celebrity: all other Werther tweets
+    - If the suicide is about a villain (criminality suggested), research shows this does not trigger Werther effects
+    
+The two new Werther categories do not need to be distinguished during coding, because they can be determined based on containing celebrity names, and occuring 2 months after a celebrity suicide, in a final step. So new data is coded into the following categories: 
+
+* Papageno positive
+* Papageno negative
+* Werther
+* Awareness
+* Prevention
+* Off-topic
+
+
+\newpage
+
+# Creating round 3 coding data sets: 
+
+How many tweets have we already coded per category? Combined training sample of all tweets coded until July 2020 with 6 categories. 
+
+```{r}
+training <- read.csv('../tweet_training_set/training_posts20200717.csv', stringsAsFactors = F) #new training sample July 2020 with 6 categories
+as.data.frame(xtabs(~Category, data=training))
+#write.csv(xtabs(~Category, data=training), file="tweet_training_set/tweets_per_category.csv")
+
+```
+
+About every 3rd tweet was predicted correctly by Infersent predicitons. If we want to get to 200 per category, missing number of tweets are per category: 
+
+```{r}
+as.data.frame((xtabs(~Category, data=training)-200)*3)
+```
+
+So we need to code 400 more for Papageno categories, 200 for Prevention and 150 for Werther. How many per category do we have in the new test set?
+
+```{r}
+### New test set: Round 3 - create the file for Thomas and Hannah
+dfi <- read.csv('../model_predictions_reliability/round3_2000_suicide_predictions_infersent_6categories.csv', stringsAsFactors = F) %>% 
+  rename(tweetid = GUID, 
+         timestamp = Date..CET., 
+         contents = Contents, 
+         predicted6 = Class
+        )
+dfi$set <- rep("reliability_testing_set2", nrow(dfi))
+
+#there are duplicates: 650 - filter them
+#length(unique(dfi$tweetid))
+
+#delete duplicated lines
+dfi1 <- dfi %>% 
+  group_by(tweetid) %>% 
+  slice(1) %>% 
+  ungroup()
+
+#how many per category are left? 
+xtabs(~predicted6, data=dfi1)
+
+#select all papageno tweets plus some Werther/Prevention (we already have enough training examples for Awareness and Off-topic from previous coding rounds)
+dpapageno <- dfi1 %>% 
+  filter(predicted6 == "Papageno_positive" | predicted6 == "Papageno_negative")
+dprevention <- dfi1 %>% 
+  filter(predicted6 == "Prevention") %>%
+  group_by(predicted6) %>% 
+  slice(1:200) %>% 
+  ungroup()
+dwerther <- dfi1 %>% 
+  filter(predicted6 == "Werther") %>%
+  group_by(predicted6) %>% 
+  slice(1:150) %>% 
+  ungroup()
+
+#combine both datasets
+dround3 <- rbind(dpapageno, dprevention,dwerther) %>% 
+  select(c(tweetid, timestamp,contents, predicted6, set))
+```
+
+
+```{r, Write datasets without predictions for coding}
+
+#Write datasets without predictions for coding: 
+
+#randomly sort tweets (I forgot to set a seed, so use the .csv files below to reconstruct)
+dround3rand <- dround3 %>% 
+  sample_n(size=nrow(dround3), replace=FALSE)
+
+# split them into 2 files for Hannah and Thomas
+dround3_nopred <- dround3rand %>% 
+    select(-predicted6) #delete the model predictions
+dround3_nopred$coder <- rep(c("Hannah", "Thomas"), each = nrow(dround3)/2) #coder only works for the current random sorting!
+
+#change column order for hand coding
+dround3_nopred <- dround3_nopred[,c("tweetid", "timestamp", "set", "coder", "contents")]
+
+# #write files for coding
+# write.csv2(filter(dround3_nopred, coder =="Hannah"), file="model_predictions_reliability/round3_504_suicide_Hannah_6categories_empty.csv", row.names=F)
+# write.csv2(filter(dround3_nopred, coder =="Thomas"), file="model_predictions_reliability/round3_504_suicide_Thomas_6categories_empty.csv", row.names=F)
+```
+  
+```{r, coding round 3b}
+#repeat the same steps for all remaining prevention and werther tweets (not yet written to data files)
+dprevention3b <- dfi1 %>% 
+  filter(predicted6 == "Prevention") %>%
+  group_by(predicted6) %>% 
+  slice(201:n()) %>% 
+  ungroup()
+dwerther3b <- dfi1 %>% 
+  filter(predicted6 == "Werther") %>%
+  group_by(predicted6) %>% 
+  slice(151:n()) %>% 
+  ungroup()
+#combine both datasets
+dround3b <- rbind(dprevention3b,dwerther3b) %>% 
+  select(c(tweetid, timestamp,contents, predicted6, set)) %>% 
+   mutate(tweetid = as.character(tweetid))
+
+# #write these to files for annotating/coding: 
+dround3brand <- dround3b %>%
+  sample_n(size=nrow(dround3b), replace=FALSE)#randomly sort tweets
+dround3b_nopred <- dround3brand %>%
+    select(-predicted6) #delete the model predictions
+dround3b_nopred$coder <- rep(c("Hannah"), each = nrow(dround3b)) #add coder name
+dround3b_nopred <- dround3b_nopred[,c("tweetid", "timestamp", "set", "coder", "contents")]#change column order for hand coding
+#write.csv2(dround3b_nopred, file="../model_predictions_reliability/round3b_342_suicide_Hannah_6categories_empty.csv", row.names=F)
+#careful when opening this csv for coding in LibreOffice Calc or Excel: Tweet IDs get converted to numbers and rounded, unless you specify the column has to be text before opening it. 
+
+#load this file with codings/annotations: 
+dround3b_hannah <- read.csv2('../model_predictions_reliability/round3b_342_suicide_Hannah_6categories_empty.csv') %>% 
+  mutate(tweetid = as.character(tweetid), 
+         contents = as.character(contents))
+str(dround3b_hannah)
+```
+  
+
+## Agreement Hand-coded vs. Infersent
+
+Hannah deleted duplicates and tweets already contained in previous coded data sets, that's why hand coded tweets aren't 1008, but around 30 less. 
+
+```{r}
+#read codings
+dh3 <- read.csv('../model_predictions_reliability/round3_504_suicide_Hannah_6categories.csv', stringsAsFactors = F) 
+dt3 <- read.csv('../model_predictions_reliability/round3_504_suicide_Thomas_6categories.csv', stringsAsFactors = F)
+
+d3 <- rbind(dh3, dt3)
+#dim(d3)
+
+# add predictions. Tweetids were rounded after loading from excel (they changed in dh3 - joing by timestamp instead)
+dtest3 <- inner_join(d3, dround3, by=c("set", "timestamp")) %>% 
+  mutate(category = as.factor(category), 
+         predicted6 = as.factor(predicted6))
+#dim(dtest3)
+
+dtest3 <- mutate(dtest3, predicted6 = factor(predicted6, levels = levels(dtest3$category)))
+#summary(dtest3)
+
+# codings by Hannah and Thomas
+#unique(dtest3$category)
+
+#predicted codings
+#unique(dtest3$predicted6)
+```
+
+How many tweeets per category do we have, out of the `r nrow(dtest3)` new tweets we hand coded?
+
+```{r}
+as.data.frame(xtabs(~category, dtest3))
+```
+\newpage
+
+```{r}
+#confusion matrix
+confusionMatrix(dtest3$predicted6, dtest3$category)
+```
+  
+  The confusion matrix shows that almost all actual (hand-coded) Papageno tweets were classified as Papageno, only the distinction between positive and negative seems to be difficult for the model. 
+  
+  * Papageno negative: 102 correct, 71 classified as positive, and only 6 into other categories 
+  * Papageno positive: 49 correct, 22 as negative, and only 2 as other categories
+  
+  * Prevention tweets are well recognised: 92 correct, only 2 wrong. 
+  * Werther tweets are unfortunately still often mistaken as Papageno: 96 correct, 22 Papageno positive, and 22 Papageno negative. 
+  
+  For awareness and off-topic we don't have updated results, because we only evaluated other class predictions. 
+  
+  The model still missclassifies many irrelevant tweets as Papageno tweets: 172 negative, and 150 positive. 
+  
+  Accuracy is around 0.34, and Kappa around 0.25, but would likely be higher if we had also included predictions for awareness and off-topic (these are now only zeros in the matrix, I assume that influences these scores a lot.)
+  
+  
+
+# Excluding duplicates
+
+Check for duplicates in the training set first. Which Set are the in? How many repetitions?
+
+```{r}
+#exclude all tweets already contained in the newest training set
+training3 <- read.csv('../tweet_training_set/training_posts20200814_no_duplicatetext.csv', stringsAsFactors = F)
+#are there duplicates?
+#length(unique(training3$tweetid)) #no duplicate tweet ids
+#length(unique(training3$Contents)) #but duplicate content: 91 times
+
+duplicates <- training3 %>% 
+  group_by(Contents) %>%
+  mutate(number_of_tweets = n()) %>% 
+  filter(number_of_tweets > 1) %>% 
+  arrange(Contents) %>% 
+  ungroup()
+
+xtabs(~Set, duplicates)
+xtabs(~number_of_tweets, duplicates)
+
+```
+
+Do all duplicates have the same Category coded? No. Correct those with different Category in a csv, and load the new Category file for these. 
+
+```{r}
+duplicates.coding <- duplicates %>%
+  group_by(Contents) %>% 
+  mutate(samecat = length(unique(Category))) %>% 
+  ungroup() %>% 
+  filter(samecat > 1) 
+#write.csv2(duplicates.coding, file="output/trainingset20200814_duplicates.csv", row.names=F)
+duplicates.corrections <- read.csv("../output/training_posts20200814_duplicates-checked.csv", stringsAsFactors = F) %>% 
+  #keep only 1 instance of each
+  group_by(Contents) %>% 
+  slice(1) %>% 
+  ungroup() %>% 
+  #rename the Set to "duplicate_corrections", so these can be used instead of the old Categories
+  mutate(Set = factor(Set, labels=c("duplicate_corrections", "duplicate_corrections"))) %>%
+  mutate(Coder = factor(Coder, labels = c("Hannah", "Hannah"))) %>% 
+  #delete columns that don't exist in the training set
+  select(-c(number_of_tweets, samecat))
+```
+
+Starting with training set 3 (20200814), do the following: 
+
+* replace codings that were inconsistent before with their correction
+* delete all duplicates,make sure the 16 duplicate corrections are still present
+
+```{r}
+# add the duplicate corrections to the trainingset
+training4 <- rbind(duplicates.corrections, training3)
+
+#keep only the first entry for each duplicate, make sure the 16 duplicate corrections are still present
+training5 <- training4 %>%
+  arrange(Set) %>% 
+  group_by(Contents) %>%
+  slice(1) %>% 
+  ungroup()
+
+xtabs(~Set, training5) #correct
+#write new training set file
+#write.csv(training5, "tweet_training_set/training_posts20200814_no_duplicatesstring.csv", row.names=F)
+```
+
+## Number of tweets we now have per category
+
+Number of hand-coded tweets per category in training set of August 14th 2020, including a total of `r nrow(training5)` tweets: 
+
+```{r}
+as.data.frame(xtabs(~Category, data=training5))
+```
+
+```{r}
+#Tweets that have not been coded yet (2000 predictions from Hubert, 1350 without duplicates, Thomas/Hannah coded around 504 (minus some duplicates already included in earlier training samples))
+# so there should be around 1350-2*504 left. 
+
+#dataset with 2000 predictions from infersent minus duplicates in that set (dataframe infersent 1): dfi1
+# exclude all tweets that are already in the training5 dataset
+
+#change training set names so the correspond to dfi1
+
+training6 <- training5 %>% 
+  rename(tweetid = "Tweet_ID", timestamp = "Timestamp") 
+names(training6) <- tolower(names(training6))
+
+noncoded <- anti_join(dfi1, training6, by="tweetid")
+head(noncoded)
+dim(dfi1)
+```
+
+Konstantin has also written a python script to exclude duplicates based on text, and to replace shortened Tweet IDs after opening with excel with the initial correct Tweet IDs. These are on the server in his folder: /home/khebenstreit/fastai2own/share/suicide-twitter
+
+
+
+# Create new training set: Add 1000 randomly selected tweets to previous training set. All coded according to focus/narrative and type of content 
+```{r}
+training <- read.csv('../tweet_training_set/training_posts20201102.tsv', sep='\t') %>%  #training sample according to table with 6 content types and 2 narratives
+  select(-txt_clean)
+rs <- read.csv('../tweet_training_set/1-1000tweets_basefrequency_categories_labelled.tsv', sep='\t') %>% #random sample of tweets coded according to table with content and narrative classification
+  select(-Order)
+#names(training); names(rs)
+totaltrain <- rbind(training,rs)
+```
+
+How many tweets per category? 
+```{r}
+as.data.frame(xtabs(~Category, data=totaltrain))
+#write.table(as.data.frame(xtabs(~Category, data=totaltrain)),'../output/tweets_per_category_trainingposts20201103.tsv', sep='\t', row.names=F)
+```
+
+
+- It looks like Coping1/3 and Suicidality1/3 will have to be combined, respectively. 
+- Life saved not enough for Machine learning. Maybe add it to news_coping and rename to news_positive?
+- Could we combine all news with personal stories, and just code news vs. not news in an additional column?
+
+
+Do all categories have the right focus coded?
+
+- Suicide_other can be all 3 narratives/foci
+- Werther can rarely be about a suicide case and still focused on prevention, see 7 instances below
+
+```{r}
+as.data.frame(xtabs(~focus+Category, data=totaltrain))
+totaltrain %>% 
+  filter(Category=="Werther" & focus == "2") %>% 
+  select(Category, focus, Contents)
+```
+
+
+
+# Relative frequency of categories in a random sample of 1000 tweets
+
+```{r}
+rs <- read.csv('../tweet_training_set/1-1000tweets_basefrequency_categories_labelled.tsv', sep='\t') #random sample of tweets coded according to table with content and narrative classification
+as.data.frame(xtabs(~Category, data=rs))
+
+#order for factor levels
+ord_category <- c( "Suicidality1","Suicidality3","Coping1", "Coping3", "News_coping", "News_suicidality", "Bereaved_negative", "Bereaved_coping","Awareness", "Prevention",  "Werther", "Life_saved", "Suicide_other","Off-topic", "")
+
+coded = rs %>% 
+  #filter(!Category=="") %>% #filter empty (not labeled) tweets 
+  mutate(Category = factor(Category, levels = ord_category, labels = ord_category)) %>% 
+  mutate(Combined = recode(Category, Coping1 = "Coping", Coping3 = "Coping", Suicidality1 = "Suicidality", Suicidality3 = "Suicidality", 
+                           News_coping = "Coping", News_suicidality = "Suicidality"))
+#proportion per category
+prop.cat <- as.data.frame(coded %>% 
+  group_by(Category) %>%
+  summarise (n = n()) %>%
+  mutate(freq = n / sum(n))) %>%
+  ungroup()  %>% 
+  mutate(Combined = recode(Category, Coping1 = "Coping", Coping3 = "Coping", Suicidality1 = "Suicidality", Suicidality3 = "Suicidality", 
+                           News_coping = "Coping", News_suicidality = "Suicidality"))
+
+#proportion with combined categories
+prop.comb <- as.data.frame(coded %>%
+  group_by(Combined) %>%
+  summarise (n = n()) %>%
+  mutate(freq = n / sum(n))) %>% 
+  ungroup()
+#write.table(prop.cat,'../output/tweets_per_category_basefrequency20201028.tsv', sep='\t', row.names=F)
+
+```
+Tweets per category. Total number of tweets n=`r sum(prop.comb$n,2)`. 
+
+```{r}
+prop.cat
+```
+
+
+Tweets per category if 1st and 3rd person perspective are combined for Coping and Suicidality. Total number of tweets n=`r sum(prop.comb$n,2)`.  
+```{r}
+prop.comb
+```
+
+
+```{r, Figure Frequency in random sample combined categories}
+s=15
+plot.prop.comb <- ggplot(prop.comb, aes(x=Combined, y = freq, fill=Combined)) + #dataset and variables to plot
+  geom_bar(stat="identity")+
+  ggtitle("Frequency in random tweet sample")+
+  labs(y="Proportion", x="") + #axes and title labels
+  scale_fill_brewer(palette="Paired")+
+  theme_bw() +  
+  theme(axis.text.x = element_text(angle = 45, hjust=1), legend.position="none", text=element_text(size=s))
+
+plot.prop.comb
+#pdf('../figures/proportion_categories_random_sample.pdf', height=5, width=7); plot.prop.comb; plot.prop.coping.suicidality; dev.off()
+```
+
+Tweets in the suicidality and coping categories include the following subcategories:
+
+```{r, Figure Frequency in random sample subcategories}
+
+#Subcategories
+df <- filter(prop.cat, Combined=="Coping" | Combined=="Suicidality")
+plot.prop.coping.suicidality <- ggplot(df, aes(x=Category, y = freq, fill=Combined)) + #dataset and variables to plot
+  geom_bar(stat="identity")+
+  ggtitle("Subcategories Coping and Suicidality") +
+  labs(y="Proportion", x="") + #axes and title labels
+  scale_fill_brewer(palette="Paired")+
+  theme_bw() +  
+  theme(axis.text.x = element_text(angle = 45, hjust=1), legend.position="none", text=element_text(size=s))
+plot.prop.coping.suicidality
+
+
+
+#pdf('../figures/proportion_subcategories_copingsuicidal_random.pdf', height=5, width=7/10*6); plot.prop.coping.suicidality; dev.off()
+ 
+```
+```{r}
+prop.notserious <- as.data.frame(coded %>%
+  group_by(notserious_unclear) %>%
+  summarise (n = n()) %>%
+  mutate(freq = n / sum(n))) %>% 
+  ungroup()
+```
+Out of the off-topic and irrelevant suicide tweets, about `r round(prop.notserious$freq[2], 2)*100`% are jokes, sarcastic, metaphors or 
+
+# Frequency in training sample
+
+
+```{r}
+coded = totaltrain %>% 
+  filter(!Category=="") %>% #filter empty (not labeled) tweets 
+  mutate(Category = factor(Category, levels = ord_category, labels = ord_category)) %>% 
+  mutate(Combined = recode(Category, Coping1 = "Coping", Coping3 = "Coping", Suicidality1 = "Suicidality", Suicidality3 = "Suicidality", 
+                           News_coping = "Coping", News_suicidality = "Suicidality", Life_saved= "Suicide_other", Bereaved_negative = "Suicide_other", Bereaved_coping = "Suicide_other")) %>% 
+  mutate(Contents = as.character(Contents))
+
+# write this dataframe to new training sample file. Very few tweets have \n new line characters that split the tweet into 2 cells in the ouput.tsv file - delete these characters first
+# example tweets
+str_subset(coded$Contents, "It's a cry for help that went unanswered.") # "in over half of them", "It's a cry for help that went unanswered."
+coded$Contents = str_replace_all(coded$Contents, "\n","")
+#write.table(coded,'../tweet_training_set/training_posts20201104.tsv', sep = "\t", row.names=F) # problem with this: some tweets have tabs, but even more have commas or semicolons, so csv is no solution. I think I solved this, but do not remember how. 
+
+# proportion per category
+prop.cat <- as.data.frame(coded %>% 
+  group_by(Category) %>%
+  summarise (n = n()) %>%
+  mutate(freq = n / sum(n))) %>%
+  ungroup()  %>% 
+  mutate(Combined = recode(Category, Coping1 = "Coping", Coping3 = "Coping", Suicidality1 = "Suicidality", Suicidality3 = "Suicidality", 
+                           News_coping = "Coping", News_suicidality = "Suicidality"))
+
+#proportion with combined categories
+prop.comb <- as.data.frame(coded %>%
+  group_by(Combined) %>%
+  summarise (n = n()) %>%
+  mutate(freq = n / sum(n))) %>% 
+  ungroup()
+```
+
+Tweets per category. Total number of tweets n=`r sum(prop.comb$n,2)`. 
+
+```{r}
+prop.cat
+```
+
+
+Tweets per category if 1st and 3rd person perspective are combined for Coping and Suicidality. Total number of tweets n=`r sum(prop.comb$n,2)`.  
+```{r}
+prop.comb
+```
+
+```{r, Figure Frequency in training sample}
+s=15
+plot.n.comb <- ggplot(prop.cat, aes(x=Combined, y = n, fill=Combined)) + #dataset and variables to plot
+  geom_bar(stat="identity")+
+  ggtitle(paste("Frequency in training sample with n=", nrow(totaltrain), sep=""))+
+  labs(y="Number of tweets", x="Category") + #axes and title labels
+  scale_fill_brewer(palette="Paired")+
+  theme_bw() +  
+  theme(axis.text.x = element_text(angle = 45, hjust=1), legend.position="none", text=element_text(size=s))
+
+plot.n.comb
+
+s=14
+#Subcategories
+df <- filter(prop.cat, Combined=="Coping" | Combined=="Suicidality")
+plot.n.coping.suicidality <- ggplot(df, aes(x=Category, y = n, fill=Combined)) + #dataset and variables to plot
+  geom_bar(stat="identity")+
+  ggtitle(paste("Subcategories Coping & Suicidality in training sample with n=", nrow(totaltrain), sep="")) +
+  labs(y="Number of tweets", x="Category") + #axes and title labels
+  scale_fill_brewer(palette="Paired")+
+  theme_bw() +  
+  theme(axis.text.x = element_text(angle = 45, hjust=1), legend.position="none", text=element_text(size=s))
+plot.n.coping.suicidality
+
+
+#pdf('../figures/n_per_category_training_sample.pdf', height=5, width=7); plot.n.comb; plot.n.coping.suicidality; dev.off()
+#pdf('../figures/n_per_subcategory_copingsuicidal_training.pdf', height=5, width=7/10*6); plot.n.coping.suicidality; dev.off()
+ 
+```
+
+Which categories in the training sample have less than 150 tweets? We need to combined these into larger categories, or code them as Suicide_other for training the models. 
+
+```{r, Figure small categories}
+
+s=15
+plot.smalln <- ggplot(filter(prop.cat, n < 150), aes(x=Category, y = n, fill=Combined)) + #dataset and variables to plot
+  geom_bar(stat="identity")+
+  ggtitle("Small categories training sample")+
+  labs(y="Number of tweets", x="Category") + #axes and title labels
+  scale_fill_brewer(palette="Paired")+
+  theme_bw() +  
+  theme(axis.text.x = element_text(angle = 45, hjust=1), legend.position="none", text=element_text(size=s))
+
+plot.smalln
+
+#pdf('../figures/small_categories_training_sample.pdf', height=5, width=7); plot.smalln; dev.off()
+
+```
+
+

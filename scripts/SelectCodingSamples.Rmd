@@ -1,0 +1,36 @@
+---
+title: "Select coding samples suicide tweeets"
+author: "Hannah Metzler"
+date: "30/9/2020"
+output: 
+  pdf_document:
+    df_print: kable
+    keep_tex: true
+url_colour: blue
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, message=FALSE, warning=FALSE)
+Sys.setlocale("LC_ALL", 'en_US.UTF-8')
+options(scipen=99)
+library(dplyr)
+library(stringr)
+```
+
+```{r}
+d <- read.csv("../tweet_training_set/reserve_samples_100k_from_suicide_tweets.tsv", sep="\t")
+head(d)
+
+```
+Instead I did: 
+<!-- # in terminal: head -n 2000 reserve_samples_100k_from_suicide_tweets.tsv | tail -n 1000 -->
+
+
+If I want to replace the cleaned tweet text with text including users and URLs, I need to do: 
+
+- get tweet IDs of all tweets for which I want uncleaned text (e.g. the 1000 base frequency sample, or all 100k tweets reserved for training: reserve_samples_100k_from_suicide_tweets.tsv)
+- match with tweet IDs in from tweet_ids_set_rehydrated-time_id_text.tsv, which has the uncleaned text
+- write into one file, matching the tweet ID
+
+
+  

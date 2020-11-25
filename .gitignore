@@ -1,0 +1,7 @@
+.Rproj.user
+.Rhistory
+.RData
+.Ruserdata
+scripts/01IntercoderReliablity_CodingSchemes.pdf scripts/01IntercoderReliablity.pdf
+scripts/01IntercoderReliablity_CodingSchemes_files/figure-latex/
+scripts/Correcting_Tweet_IDs_of_Classification_File.ipynb scripts/twitter-1-rehydration.ipynb scripts/twitter-2-cleaning-text-removing-duplicates.ipynb scripts/twitter-3-removing-classification-tweets-for-language-model-training.ipynb scripts/twitter-4-training-lm-fastai2_10_nlp.ipynb scripts/twitter-suicide-tweets(200k).ipynb scripts/twitter-suicide-tweets(2million)_crossvalidation.ipynb scripts/twitter-suicide-tweets(2million).ipynb scripts/twitter-suicide-tweets.ipynb
