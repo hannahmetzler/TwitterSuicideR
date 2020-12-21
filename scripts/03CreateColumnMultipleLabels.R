@@ -4,9 +4,11 @@ library(dplyr)
 library(stringr)
 library(tidyselect)
 
-#read latest training set version
-d <- read.csv('./tweet_training_set/training_posts20201105.tsv', header=TRUE, sep='\t')
+# #read latest training set version
+#d <- read.csv('./tweet_training_set/training_posts20201105_3181tweets.tsv', header=TRUE, sep='\t')
 #str(d)
+d$Combined = NULL
+length(str_subset(d$Contents, "\n")) #no tweets with line separators
 
 #all labels to lower case
 levels(d$ambiguous) = tolower(levels(d$ambiguous))
@@ -36,12 +38,12 @@ d1 = d %>%
     str_detect(d$ambiguous, ',') ~ ambiguous),
     Category2 = recode(Category2, 'news_suicidality, suicidality3' = 'suicidality3'))  %>%  #recode the only tweet with 3 category labels to the more important one
   #e.g. put Category 2 column after Category column
-  dplyr::relocate(Category2, .after=Category) %>%  
+  dplyr::relocate(Category2, .after=Category)  
   
   
   
-  #delete info that is not a category label in the Category2 column, everything up to the comma plus one empty space after
-  d1$Category2 <- (gsub(".*, ", "",d1$Category2))
+#delete info that is not a category label in the Category2 column, everything up to the comma plus one empty space after
+d1$Category2 <- (gsub(".*, ", "",d1$Category2))
 
 #now there are only labels left that also exist in the initial Category column
 xtabs(~d1$Category2)
@@ -66,5 +68,8 @@ nrow(d %>%
 #   dplyr::relocate(Combined2, .after=Combined)
 # head(d2)
 
+length(str_subset(d1$Contents, "\n"))
+
 #write the data with the new column to a file
 write.table(d1,'./tweet_training_set/training_posts20201124_multiple_labels.tsv', sep='\t', row.names=F)
+save(d1, file='./tweet_training_set/training_posts20201124_multiple_labels.R')

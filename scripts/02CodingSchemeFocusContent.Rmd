@@ -23,9 +23,10 @@ library(forcats)
 library(RColorBrewer)
 ```
 
-# Create training set step 4: Add 1000 randomly selected tweets to hand- and model-selected training set. Labels for focus/narrative and type of content. 
+# Add 1000 randomly selected tweets to hand- and model-selected training set. Labels for focus/narrative and type of content.
+
 ```{r}
-training <- read.csv('../tweet_training_set/training_posts20201102.tsv', sep='\t') %>%  #training sample according to table with 6 content types and 2 narratives
+training <- read.csv('../tweet_training_set/training_posts20201102_2185tweets.tsv', sep='\t') %>%  #training sample according to table with 6 content types and 2 narratives
   select(-txt_clean)
 rs <- read.csv('../tweet_training_set/1-1000tweets_basefrequency_categories_labelled.tsv', sep='\t') %>% #random sample of tweets coded according to table with content and narrative classification
   select(-Order)
@@ -61,7 +62,6 @@ totaltrain %>%
 # Relative frequency of categories in a random sample of 1000 tweets
 
 ```{r}
-rs <- read.csv('../tweet_training_set/1-1000tweets_basefrequency_categories_labelled.tsv', sep='\t') #random sample of tweets coded according to table with content and narrative classification
 as.data.frame(xtabs(~Category, data=rs))
 
 #order for factor levels
@@ -157,12 +157,6 @@ coded = totaltrain %>%
                            News_coping = "Coping", News_suicidality = "Suicidality", Life_saved= "Suicide_other", Bereaved_negative = "Suicide_other", Bereaved_coping = "Suicide_other")) %>% 
   mutate(Contents = as.character(Contents))
 
-# write this dataframe to new training sample file. Very few tweets have \n new line characters that split the tweet into 2 cells in the ouput.tsv file - delete these characters first
-# example tweets
-str_subset(coded$Contents, "It's a cry for help that went unanswered.") # "in over half of them", "It's a cry for help that went unanswered."
-coded$Contents = str_replace_all(coded$Contents, "\n","")
-#write.table(coded,'../tweet_training_set/training_posts20201104.tsv', sep = "\t", row.names=F) # problem with this: some tweets have tabs, but even more have commas or semicolons, so csv is no solution. I think I solved this, but do not remember how. 
-
 # proportion per category
 prop.cat <- as.data.frame(coded %>% 
   group_by(Category) %>%
@@ -241,4 +235,15 @@ plot.smalln
 
 ```
 
+
+# Save the complete training set: training_posts20201105_3181tweets.tsv
+
+```{r}
+# write this dataframe to new training sample file. Very few tweets have \n new line characters that split the tweet into 2 cells in the ouput.tsv file - delete these characters first
+# example tweets
+str_subset(coded$Contents, "It's a cry for help that went unanswered.") # "in over half of them", "It's a cry for help that went unanswered."
+# problem with this: some tweets have new lines, they need to be deleted before I can write a tab seperated file, otherwise the tweet text gets split into news cells and lines at these points
+coded$Contents = str_replace_all(coded$Contents, "\n","")
+#write.table(coded,'../tweet_training_set/training_posts20201105_3181tweets.tsv', sep = "\t", row.names=F) 
+```
 
