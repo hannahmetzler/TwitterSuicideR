@@ -31,10 +31,10 @@ training <- read.csv('../tweet_training_set/training_posts20201102_2185tweets.ts
 rs <- read.csv('../tweet_training_set/1-1000tweets_basefrequency_categories_labelled.tsv', sep='\t') %>% #random sample of tweets coded according to table with content and narrative classification
   select(-Order)
 #names(training); names(rs)
-totaltrain <- rbind(training,rs)
+totaltrain <- rbind(training, rs)
 ```
 
-How many tweets per category? 
+How many tweets per category (all small categories included) in all coded tweets? 
 ```{r}
 as.data.frame(xtabs(~Category, data=totaltrain))
 #write.table(as.data.frame(xtabs(~Category, data=totaltrain)),'../output/tweets_per_category_trainingposts20201103.tsv', sep='\t', row.names=F)
@@ -59,19 +59,28 @@ totaltrain %>%
 
 
 
-# Relative frequency of categories in a random sample of 1000 tweets
 
+
+# Frequency of categories in a random sample of 1000 tweets
+
+How many tweets per category (all small categories included)? 
 ```{r}
 as.data.frame(xtabs(~Category, data=rs))
 
-#order for factor levels
-ord_category <- c( "Suicidality1","Suicidality3","Coping1", "Coping3", "News_coping", "News_suicidality", "Bereaved_negative", "Bereaved_coping","Awareness", "Prevention",  "Werther", "Life_saved", "Suicide_other","Off-topic", "")
+#define the order for factor levels
+ord_category <- c( "Suicidality1","Suicidality3","Coping1", "Coping3", "News_coping", "News_suicidality", "Bereaved_negative", "Bereaved_coping","Awareness", "Prevention",  "Werther", "Life_saved", "Suicide_other","Off-topic")
 
 coded = rs %>% 
-  #filter(!Category=="") %>% #filter empty (not labeled) tweets 
   mutate(Category = factor(Category, levels = ord_category, labels = ord_category)) %>% 
+  #combine all coping and suicidality categories into one
   mutate(Combined = recode(Category, Coping1 = "Coping", Coping3 = "Coping", Suicidality1 = "Suicidality", Suicidality3 = "Suicidality", 
                            News_coping = "Coping", News_suicidality = "Suicidality"))
+```
+
+Tweets per category. Total number of tweets n=`r sum(prop.comb$n,2)`. 
+
+Proportion of tweets per small category
+```{r}
 #proportion per category
 prop.cat <- as.data.frame(coded %>% 
   group_by(Category) %>%
@@ -80,7 +89,11 @@ prop.cat <- as.data.frame(coded %>%
   ungroup()  %>% 
   mutate(Combined = recode(Category, Coping1 = "Coping", Coping3 = "Coping", Suicidality1 = "Suicidality", Suicidality3 = "Suicidality", 
                            News_coping = "Coping", News_suicidality = "Suicidality"))
+prop.cat
+```
 
+Tweets per category if 1st and 3rd person perspective are combined for Coping and Suicidality, and news coping and news suicidality classes included as well. Total number of tweets n=`r sum(prop.comb$n,2)`.  
+```{r}
 #proportion with combined categories
 prop.comb <- as.data.frame(coded %>%
   group_by(Combined) %>%
@@ -88,17 +101,6 @@ prop.comb <- as.data.frame(coded %>%
   mutate(freq = n / sum(n))) %>% 
   ungroup()
 #write.table(prop.cat,'../output/tweets_per_category_basefrequency20201028.tsv', sep='\t', row.names=F)
-
-```
-Tweets per category. Total number of tweets n=`r sum(prop.comb$n,2)`. 
-
-```{r}
-prop.cat
-```
-
-
-Tweets per category if 1st and 3rd person perspective are combined for Coping and Suicidality. Total number of tweets n=`r sum(prop.comb$n,2)`.  
-```{r}
 prop.comb
 ```
 
@@ -109,7 +111,7 @@ plot.prop.comb <- ggplot(prop.comb, aes(x=Combined, y = freq, fill=Combined)) + 
   geom_bar(stat="identity")+
   ggtitle("Frequency in random tweet sample")+
   labs(y="Proportion", x="") + #axes and title labels
-  scale_fill_brewer(palette="Paired")+
+    scale_fill_brewer(palette="Paired")+
   theme_bw() +  
   theme(axis.text.x = element_text(angle = 45, hjust=1), legend.position="none", text=element_text(size=s))
 
@@ -144,7 +146,7 @@ prop.notserious <- as.data.frame(coded %>%
   mutate(freq = n / sum(n))) %>% 
   ungroup()
 ```
-Out of the off-topic and irrelevant suicide tweets, about `r round(prop.notserious$freq[2], 2)*100`% are jokes, sarcastic, metaphors or 
+Out of the off-topic and suicide_other tweets, about `r round(prop.notserious$freq[2], 2)*100`% are jokes, sarcastic, metaphors or 
 
 # Frequency in training sample
 

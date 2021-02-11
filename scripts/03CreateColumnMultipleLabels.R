@@ -40,8 +40,6 @@ d1 = d %>%
   #e.g. put Category 2 column after Category column
   dplyr::relocate(Category2, .after=Category)  
   
-  
-  
 #delete info that is not a category label in the Category2 column, everything up to the comma plus one empty space after
 d1$Category2 <- (gsub(".*, ", "",d1$Category2))
 
