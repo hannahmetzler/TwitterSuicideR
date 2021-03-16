@@ -17,6 +17,7 @@ options(scipen=99)
 library(dplyr)
 library(ggplot2)
 library(cowplot)
+        # library(RColorBrewer)
 ```
 
 
@@ -24,7 +25,7 @@ library(cowplot)
 # Create dataset with important classess only, and all minority classes combined with irrelevant tweets
 d0 <- read.csv('../tweet_training_set/training_posts20201126_corrections_true_label_errors.tsv', header=TRUE, sep='\t')
 
-as.data.frame(xtabs(~Category, d0))
+# as.data.frame(xtabs(~Category, d0))
 
 d = d0 %>% 
   #add all minority classes and suicide other and off-topic to one large class called "irrelevant":
@@ -41,7 +42,7 @@ d = d0 %>%
 
 names(d) = tolower(names(d))
 
-as.data.frame(xtabs(~main_category, d))
+# as.data.frame(xtabs(~main_category, d))
 
 # write.table(d1,'./tweet_training_set/training_posts20201130_main_categories.tsv', sep='\t', row.names=F)
 # save(d1, file='./tweet_training_set/training_posts20201130_main_categories.R')
@@ -59,9 +60,9 @@ d <- d %>%
          notserious_unclear = factor(notserious_unclear, levels = c(0,1), labels = c("no", "yes")))
 ```
 
-# Propotions for different categories in the final training data set, stats and figures 
+# Proportions for different categories in the final training data set, stats and figures 
 
-#Proportion of tweets per subcategory 
+##  Proportion of tweets per subcategory 
 
 ```{r}
 prop.cat = as.data.frame(d %>% 
@@ -70,7 +71,22 @@ prop.cat = as.data.frame(d %>%
                 mutate(freq = n / sum(n))) %>%
   ungroup()
 prop.cat
+```
 
+## Proportion per main category in training sample
+
+```{r}
+prop.main <- as.data.frame(d %>%
+                             group_by(main_category) %>%
+                             summarise (n = n()) %>%
+                             mutate(freq = n / sum(n))) %>% 
+  ungroup()
+# write.table(prop.main,'output/tweets_per_maincategory_finaltrainingsample_20210104.tsv', sep='\t', row.names=F)
+prop.main
+```
+### Proportions
+
+```{r,  fig.height=4, width=7}
 #figure subcategories:
 s=15
 plot.prop.cat<- ggplot(prop.cat, aes(x=category, y = freq, fill=category)) + #dataset and variables to plot
@@ -87,6 +103,14 @@ plot.prop.smallcat<- ggplot(subset(prop.cat, freq <0.08), aes(x=category, y = fr
   scale_fill_manual(values=c("#332288", "#88CCEE", "#44AA99", "#117733", '#999933', '#DDCC77', '#CC6677', "#882255", "#AA4499"))+
   theme_bw() +  
   theme(axis.text.x = element_text(angle = 45, hjust=1), legend.position="none", text=element_text(size=s))
+
+plot.prop.cat
+plot.prop.smallcat
+```
+
+### Absolute number of tweets
+
+```{r,  fig.height=4, width=7}
 plot.n.cat<- ggplot(prop.cat, aes(x=category, y = n, fill=category)) + #dataset and variables to plot
   geom_bar(stat="identity")+
   ggtitle(paste("Tweets per subcategory in training sample n =", sum(prop.cat$n,2)))+
@@ -102,23 +126,18 @@ plot.n.smallcat<- ggplot(subset(prop.cat, freq <0.08), aes(x=category, y = n, fi
   theme_bw() +  
   theme(axis.text.x = element_text(angle = 45, hjust=1), legend.position="none", text=element_text(size=s))
 #pdf("./figures/proportions_subcategories_training_sample.pdf", height=10, width=7)
-plot_grid(plot.prop.cat, plot.prop.smallcat, ncol=1)
-plot_grid(plot.n.cat, plot.n.smallcat, ncol=1)
-dev.off()
+# plot_grid(plot.prop.cat, plot.prop.smallcat, ncol=1)
+# plot_grid(plot.n.cat, plot.n.smallcat, ncol=1)
+#dev.off()
+
+plot.n.cat
+plot.n.smallcat
 ```
 
-# Proportion per main category in training sample
 
-```{r}
-prop.main <- as.data.frame(d %>%
-                             group_by(main_category) %>%
-                             summarise (n = n()) %>%
-                             mutate(freq = n / sum(n))) %>% 
-  ungroup()
-# write.table(prop.main,'output/tweets_per_maincategory_finaltrainingsample_20210104.tsv', sep='\t', row.names=F)
-prop.main
-
+```{r,  fig.height=4, width=5}
 #Figure main category in final training sample
+
 plot.prop.main<- ggplot(prop.main, aes(x=main_category, y = freq, fill=main_category)) + #dataset and variables to plot
   geom_bar(stat="identity")+
   ggtitle(paste("Tweets per main category in training sample n=", sum(prop.main$n,2)))+
@@ -136,7 +155,7 @@ plot.n.main<- ggplot(prop.main, aes(x=main_category, y = n, fill=main_category))
 
 plot.prop.main
 plot.n.main
-# #pdf('./figures/maincategories_training_sample.pdf', height=5, width=7); plot.prop.main; plot.n.main; dev.off()
+# #pdf('./figures/maincategories_training_sample.pdf', height=5, width=7); plot.prop.main; plot.n.main; #dev.off()
 
 ```
 
@@ -149,8 +168,11 @@ prop.about <- as.data.frame(d %>%
                              mutate(freq = n / sum(n))) %>% 
   ungroup()
 # write.table(prop.about,'output/tweets_per_aboutsuicide_finaltrainingsample_20210104.tsv', sep='\t', row.names=F)
-prop.about 
+prop.about
+```
 
+
+```{r, fig.height=4, fig.width=4}
 #Figure Frequency in final training sample
 plot.prop.about<- ggplot(prop.about, aes(x=about_suicide, y = freq, fill=about_suicide)) + #dataset and variables to plot
   geom_bar(stat="identity")+
@@ -172,10 +194,13 @@ prop.serious <- as.data.frame(d %>%
                               mutate(freq = n / sum(n))) %>% 
   ungroup()
 prop.serious
+```
 
+
+```{r, fig.height=4, fig.width=4}
 plot.prop.serious<- ggplot(prop.serious, aes(x=notserious_unclear, y = freq, fill=notserious_unclear)) + #dataset and variables to plot
   geom_bar(stat="identity")+
-  ggtitle("Tweet is not serious, unclear if serious,\nor uses suicide as metaphor")+
+  ggtitle("Tweet is not serious, unclear \n if serious, or uses \n suicide as metaphor")+
   labs(y="Proportion", x="") + #axes and title labels
   # scale_fill_brewer(palette="Paired")+
   scale_fill_manual(values=c("#332288", "#88CCEE", "#44AA99", "117733", '#CC6677', "#882255"))+
@@ -188,9 +213,8 @@ plot.prop.serious
 
 # In the random sample of 1000 tweets 
 
-## Proportion per main category in training sample 
+## Proportion per main category in random sample
 ```{r}
-
 prop.main <- as.data.frame(d %>%
                              filter(set=="basefrequency") %>% 
                              group_by(main_category) %>%
@@ -199,7 +223,9 @@ prop.main <- as.data.frame(d %>%
   ungroup()
 # write.table(prop.main,'output/tweets_per_maincategory_finaltrainingsample_20210104.tsv', sep='\t', row.names=F)
 prop.main
+```
 
+```{r}
 #Figure main category in final training sample
 plot.prop.main<- ggplot(prop.main, aes(x=main_category, y = freq, fill=main_category)) + #dataset and variables to plot
   geom_bar(stat="identity")+
@@ -218,6 +244,6 @@ plot.n.main<- ggplot(prop.main, aes(x=main_category, y = n, fill=main_category))
 
 plot.prop.main
 plot.n.main
-#pdf('./figures/maincategories_random_sample.pdf', height=5, width=7); plot.prop.main; plot.n.main; dev.off()
+#pdf('./figures/maincategories_random_sample.pdf', height=5, width=7); plot.prop.main; plot.n.main; #dev.off()
 # write.table(prop.main,'output/tweets_per_maincategory_randomsample_20210104.tsv', sep='\t', row.names=F)
 ```
