@@ -1,0 +1,44 @@
+---
+title: "Tweets per Category"
+author: "Hannah Metzler"
+date: "3/16/2021"
+output: 
+  pdf_document:
+    df_print: kable
+    keep_tex: true
+url_colour: blue
+always_allow_html: yes
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, message=FALSE, warning=FALSE)
+Sys.setlocale("LC_ALL", 'en_US.UTF-8')
+options(scipen=99)
+library(dplyr)
+library(ggplot2)
+
+#total number of tweets per category by year
+dcatperyear = dcatperday %>% 
+  group_by(year, predictions) %>% 
+  summarise(ntweets = sum(ntweets)) %>% 
+  #2020 is not a full year 
+  filter(year!="2020") %>% 
+  #million tweets
+  mutate(million_tweets = ntweets/1000000)
+
+#plot per year
+ggplot(data=dcatperyear, aes(x=year, y=million_tweets, colour = predictions))+
+  geom_point()+ geom_line()+
+  theme_bw()
+
+#total number of tweets per month
+dcatpermonth = dcatperday %>% 
+  filter(date < as.Date("2020-04-01")) %>% #no full month of data
+  group_by(month, predictions) %>% 
+  summarise(ntweets = sum(ntweets)) %>% 
+  #thousand tweets
+  mutate(million_tweets = ntweets/1000000)
+#plot per month
+ggplot(data=dcatpermonth, aes(x=month, y=million_tweets, colour = predictions))+
+  geom_point()+ geom_line()+
+  theme_bw()
