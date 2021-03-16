@@ -16,8 +16,50 @@ Sys.setlocale("LC_ALL", 'en_US.UTF-8')
 options(scipen=99)
 library(dplyr)
 library(ggplot2)
+library(viridis)
+#load data
+# load("tweets_other_datasets/Suicide_tweets_daily_volume_per_maincategory.R")
+#our source script (but this takes a couple of minutes)
+# source('./scripts/06BuildPredictionsTimelineDataset.R')
+```
 
-#total number of tweets per category by year
+# Entire timeline of daily tweets per category
+
+```{r}
+#plot per year
+ggplot(data=dcatperday, aes(x=date, y=ntweets, colour = predictions))+
+  geom_line()+
+  theme_bw()+
+  viridis::scale_colour_viridis(discrete=T)
+
+ggplot(data=dcatperday, aes(x=date, y=ntweets, colour = predictions))+
+  geom_line()+
+  theme_bw()+
+  viridis::scale_colour_viridis(discrete=T)+
+  ylim(c(0,10000))+
+  ggtitle("Only up to 10.000 per day (cut everything above)")
+
+ggplot(data=filter(dcatperday, predictions=="coping" | predictions=="suicidality"), 
+                   aes(x=date, y=ntweets, colour = predictions))+
+  geom_line()+
+  theme_bw()+
+  viridis::scale_colour_viridis(discrete=T)+
+  # ylim(c(0,1000))+
+  ggtitle("Only coping and suicidality")
+
+ggplot(data=filter(dcatperday, predictions=="coping" | predictions=="suicidality"), 
+                   aes(x=date, y=ntweets, colour = predictions))+
+  geom_line()+
+  theme_bw()+
+  viridis::scale_colour_viridis(discrete=T)+
+  ylim(c(0,1000))+
+  ggtitle("Only coping and suicidality below 1000 per day")
+```
+
+
+# Total number of tweets per category by year
+
+```{r}
 dcatperyear = dcatperday %>% 
   group_by(year, predictions) %>% 
   summarise(ntweets = sum(ntweets)) %>% 
@@ -29,16 +71,54 @@ dcatperyear = dcatperday %>%
 #plot per year
 ggplot(data=dcatperyear, aes(x=year, y=million_tweets, colour = predictions))+
   geom_point()+ geom_line()+
-  theme_bw()
+  theme_bw()+
+  viridis::scale_colour_viridis(discrete=T)+
+  scale_x_continuous(n.breaks=7)
+```
+ Same plot without the category Irrelevant (which includes tweets about suicide not belonging in any other category, and off-topic tweets). 
+ 
+ 
+```{r}
+#plot per year
+ggplot(data=filter(dcatperyear, predictions!="irrelevant"), aes(x=year, y=million_tweets, colour = predictions))+
+  geom_point()+ geom_line()+
+  theme_bw()+
+  viridis::scale_colour_viridis(discrete=T)+
+  scale_x_continuous(n.breaks=7)
+```
 
-#total number of tweets per month
+
+
+# Total number of tweets per month (averaged across 7 years)
+
+```{r}
 dcatpermonth = dcatperday %>% 
   filter(date < as.Date("2020-04-01")) %>% #no full month of data
   group_by(month, predictions) %>% 
   summarise(ntweets = sum(ntweets)) %>% 
   #thousand tweets
-  mutate(million_tweets = ntweets/1000000)
+  mutate(million_tweets = ntweets/1000000) %>% ungroup()
 #plot per month
 ggplot(data=dcatpermonth, aes(x=month, y=million_tweets, colour = predictions))+
-  geom_point()+ geom_line()+
-  theme_bw()
+  geom_point()+ geom_line(aes(group=predictions))+
+  theme_bw()+
+  viridis::scale_colour_viridis(discrete=T)
+```
+
+# Total number of tweets per month across years (until March 2020)
+
+```{r}
+dcatmonthly = dcatperday %>% 
+  filter(date < as.Date("2020-04-01")) %>% #no full month of data
+  group_by(monthyear, predictions) %>% 
+  summarise(ntweets = sum(ntweets)) %>% 
+  #thousand tweets
+  mutate(thousand_tweets = ntweets/1000) %>% ungroup() %>%
+  mutate(monthyear = as.Date(monthyear, format = "%M %Y"))
+#plot per month
+ggplot(data=dcatmonthly, aes(x=monthyear, y=thousand_tweets, colour = predictions))+
+  geom_point()+ geom_line(aes(group=predictions))+
+  theme_bw()+
+  viridis::scale_colour_viridis(discrete=T)
+  # scale_x_continuous()#fix the scale, it s a character vector right now, switch to a date format
+```
