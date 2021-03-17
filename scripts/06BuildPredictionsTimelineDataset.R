@@ -71,13 +71,14 @@ beep()
 Sys.setlocale("LC_TIME", 'en_US.UTF-8')
 dcatperday = ddprt %>% 
   mutate(ntweets = rt+1) %>% 
-  group_by(date, predictions) %>% 
+  group_by(date) %>% 
+  mutate(ntotal = sum(ntweets)) %>% 
+  group_by(date, ntotal, predictions) %>% 
   summarise(ntweets = sum(ntweets)) %>% 
   #create variable for year, month and weekday
   mutate(year = lubridate::year(date), 
          month = lubridate::month(date, label=T), 
          weekday = lubridate::wday(date, label=T)) %>% 
-  mutate(monthyear = paste(month, year)) %>% 
 #delete december 31st 2012, and 14 days in April 2020
   filter(date != as.Date("2012-12-31"))
 
