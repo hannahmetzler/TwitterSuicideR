@@ -24,16 +24,28 @@ load("../tweets_other_datasets/Suicide_tweets_daily_volume_per_maincategory.R")
 
 #assign colours to categories: 
 catcols = viridis(6)
-colawareness = catcols[1]
-colcoping = catcols[2]
-colirrelevant = catcols[3]
-colprevention = catcols[4]
-colsuicidality = catcols[5]
-colwerther = catcols[6]
+mycols = c("awareness"= catcols[1], "werther"=catcols[6], "prevention"=catcols[4], "suicidality"=catcols[5], "coping"=catcols[2], "irrelevant"=catcols[3])
 
 #delete the month year variable (does not function properly)
 dcatperday$monthyear=NULL
 ```
+
+# Dataset description
+
+We initially downloaded tweets from crimson hexagon on April 15th 2020, including all tweets containing a suicide-related term from January 1st 2013 to April 14th 2020. We excluded terms that clearly do not refer to suicide as the act of killing oneself. The query on Crimson Hexagon was: 
+
+  country:USA AND NOT engagementType:RETWEET AND language:en
+  AND (suicide OR suicidal OR "killed himself" OR "killed herself" OR "kill himself" OR "kill herself" OR "hung himself" OR "hung herself" OR "took his life" OR "took her life" OR "take his life" OR "take her life" OR "end his own life" OR "end her own life" OR "ended his own life" OR "ended her own life" OR "end his life" OR "end her life" OR "ended his life" OR "ended her life" OR "ends his life" OR "ends her life") 
+  AND NOT ("suicide squad" OR suicidechrist OR suicidegirl* OR suicideboy* OR suicideleopard OR suicidexjockey* OR "suicidal grind" OR bomber OR squad OR epstein OR Trump OR clinton* OR Hillary OR Biden OR sanders OR “political suicide”) 
+  AND NOT ("RT" OR "MT")
+
+We rehydrated these tweets a first time in April 2020, the resulting dataset included around 13.428 million tweets, of which only 9.584 million had unique ids. The machine learning models were trained on a random sample of manually annotated tweets from this sample. To get the number of retweets, we rehydrated a second time on March 14th 2021, which produced a sample of 8.892 million unique tweets. We then added the number of retweets to each tweet, to count the total number of times it was posted on Twitter. (Side note: the retweets are only on that date, but most retweets on Twitter happen with a couple of hours.)
+
+Predictions were made with the BERT model (check with Hubert). 
+
+To do: 
+- make predictions for the variable about suicide vs. off-topic
+
 
 # Total number of tweets per category by year
 
@@ -67,7 +79,7 @@ ggplot(data=dcatperyear, aes(x=year, y=thousand_tweets))+
   #show total tweets with suicide terms per year (sum of all categories)
   # geom_line(data=dtotperyear, aes(x=year, y=ntotal))+
   theme_bw()+
-  viridis::scale_colour_viridis(discrete=T)+
+  scale_colour_manual(values=mycols)+
   scale_x_continuous(n.breaks=7)
 ```
 
@@ -75,10 +87,10 @@ ggplot(data=dcatperyear, aes(x=year, y=thousand_tweets))+
  
 ```{r}
 #plot per year
-ggplot(data=filter(dcatperyear, predictions!="irrelevant"), aes(x=year, y=million_tweets, colour = predictions))+
+ggplot(data=filter(dcatperyear, predictions!="irrelevant"), aes(x=year, y=thousand_tweets, colour = predictions))+
   geom_point()+ geom_line()+
   theme_bw()+
-  viridis::scale_colour_viridis(discrete=T)+
+  scale_colour_manual(values=mycols)+
   scale_x_continuous(n.breaks=7)+
   ggtitle(" Same plot without the category Irrelevant")
   
@@ -88,7 +100,7 @@ ggplot(data=filter(dcatperyear, predictions!="irrelevant"), aes(x=year, y=millio
 * the increase exists since 2017, but is much smaller, for coping and suicidality tweets
 
 
-# Total number of tweets per month (averaged across 7 years): stable pattern across months?
+# Monthly pattern? Total number of tweets per month (averaged across 7 years)
 
 ```{r}
 dcatpermonth = dcatperday %>% 
@@ -101,7 +113,7 @@ dcatpermonth = dcatperday %>%
 ggplot(data=dcatpermonth, aes(x=month, y=thousand_tweets, colour = predictions))+
   geom_point()+ geom_line(aes(group=predictions))+
   theme_bw()+
-  viridis::scale_colour_viridis(discrete=T)
+  scale_colour_manual(values=mycols)
 
 ```
 
@@ -110,7 +122,7 @@ ggplot(data=dcatpermonth, aes(x=month, y=thousand_tweets, colour = predictions))
     - Werther probably influenced by celebrity suicides in July, November, December in one or some of the years.
     - Could celebrity suicides also explain the high peak of awareness in June?
 
-# Total number of tweets per month across years (until March 2020)
+# Monthly timeline across years (January 2013 to March 2020)
 
 ```{r}
 #monthly timeseries
@@ -122,14 +134,14 @@ dtsmonthly = dcatperday %>%
   mutate(thousand_tweets = ntweets/1000) %>% ungroup() %>% 
 #add median per month 
   group_by(month, predictions) %>% 
-  mutate(ntweets_mean = median(ntweets))
+  mutate(ntweets_median = median(ntweets))
 
 #plot per month
 ggplot(data=dtsmonthly)+
   geom_point(aes(x=month, y=ntweets, colour = predictions))+ 
-  geom_line(aes(x=month, y=ntweets_mean, group=predictions, colour=predictions))+
+  geom_line(aes(x=month, y=ntweets_median, group=predictions, colour=predictions))+
   theme_bw()+
-  viridis::scale_colour_viridis(discrete=T)+
+  scale_colour_manual(values=mycols)+
   ggtitle("One dot per year, median as a line")
 ```
 
@@ -141,9 +153,9 @@ More detailed picture (without irrelevant category):
 ```{r}
 ggplot(data=filter(dtsmonthly, predictions!="irrelevant"))+
   geom_point(aes(x=month, y=ntweets, colour = predictions))+ 
-  geom_line(aes(x=month, y=ntweets_mean, group=predictions, colour=predictions))+
+  geom_line(aes(x=month, y=ntweets_median, group=predictions, colour=predictions))+
   theme_bw()+
-  viridis::scale_colour_viridis(discrete=T)+
+  scale_colour_manual(values=mycols)+
   ggtitle("One dot per year, median as a line (without irrelevant)")
 ```
 
@@ -156,22 +168,22 @@ ggplot(data=filter(dtsmonthly, predictions!="irrelevant"))+
 ```{r}
 ggplot(data=filter(dtsmonthly, predictions!="irrelevant"))+
   geom_point(aes(x=month, y=ntweets, colour = predictions))+ 
-  geom_line(aes(x=month, y=ntweets_mean, group=predictions, colour=predictions))+
+  geom_line(aes(x=month, y=ntweets_median, group=predictions, colour=predictions))+
   theme_bw()+
-  viridis::scale_colour_viridis(discrete=T)+
+  scale_colour_manual(values=mycols)+
   ylim(c(0,12000))+
-  ggtitle("One dot per year, mean as a line, below 10.000 monthly tweets")
+  ggtitle("One dot per year, median as a line, below 10.000 monthly tweets")
 
 ggplot(data=filter(dtsmonthly, predictions!="irrelevant"))+
   # geom_violin(aes(x=month, y=ntweets, colour = predictions))+ 
   geom_point(aes(x=month, y=ntweets, colour = predictions))+ 
-  geom_line(aes(x=month, y=ntweets_mean, group=predictions, colour=predictions))+
+  geom_line(aes(x=month, y=ntweets_median, group=predictions, colour=predictions))+
   facet_wrap(~predictions)+
   theme_bw()+
-  viridis::scale_colour_viridis(discrete=T)+
+  scale_colour_manual(values=mycols)+
   ylim(c(0,16000))+
   theme(axis.text.x=element_text(angle=60, hjust=1), axis.title.x=element_blank(), legend.position="none")+
-  ggtitle("One dot per year, mean as a line, below 16.000 monthly tweets")
+  ggtitle("One dot per year, median as a line, below 16.000 monthly tweets")
 ```
 
 * This shows that the coping peak in May is one outlier only. 
@@ -184,7 +196,7 @@ ggplot(data=filter(dtsmonthly, predictions!="irrelevant"))+
 ggplot(data=dcatperday, aes(x=date, y=ntweets, colour = predictions))+
   geom_line()+
   theme_bw()+
-  viridis::scale_colour_viridis(discrete=T)
+  scale_colour_manual(values=mycols)
 ```
 
 ```{r, coping suicidality daily}
@@ -192,14 +204,14 @@ ggplot(data=filter(dcatperday, predictions=="coping" | predictions=="suicidality
                    aes(x=date, y=ntweets, colour = predictions))+
     geom_line()+ facet_wrap(~predictions, ncol=1)+
   theme_bw()+theme(legend.position="none")+
-  scale_colour_manual(values=c(colcoping, colsuicidality))+
+  scale_colour_manual(values=mycols)+
   ggtitle("Only coping and suicidality")
 
 ggplot(data=filter(dcatperday, predictions=="coping" | predictions=="suicidality"), 
                    aes(x=date, y=ntweets, colour = predictions))+
     geom_line()+ facet_wrap(~predictions, ncol=1)+
   theme_bw()+theme(legend.position="none")+
-  scale_colour_manual(values=c(colcoping, colsuicidality))+
+  scale_colour_manual(values=mycols)+
   ylim(c(0,800))+
   ggtitle("Only coping and suicidality below 800 per day")
 ```
@@ -224,7 +236,7 @@ ggplot(data=filter(dcatperday, predictions=="awareness" | predictions=="preventi
                    aes(x=date, y=ntweets, colour = predictions))+
   geom_line()+ facet_wrap(~predictions, ncol=1)+
   theme_bw()+theme(legend.position="none")+
-  scale_colour_manual(values=c(colawareness, colprevention, colwerther))
+  scale_colour_manual(values=mycols)
 ```
 
 
@@ -234,7 +246,7 @@ ggplot(data=filter(dcatperday, predictions=="awareness" | predictions=="preventi
   geom_line()+ facet_wrap(~predictions, ncol=1)+
   theme_bw()+theme(legend.position="none")+
   ylim(c(0,10000))+
-  scale_colour_manual(values=c(colawareness, colprevention, colwerther))+
+  scale_colour_manual(values=mycols)+
   ggtitle("Daily tweets below 10000")
 ```
 
@@ -271,3 +283,32 @@ dcatperday %>%
   select(date, ntweets)
 ```
 
+
+# Weekly pattern? Total number of tweets per weekday (averaged across 7 years)
+
+```{r}
+dcatperwday = dcatperday %>% 
+  group_by(weekday, predictions) %>% 
+  summarise(median_tweets = median(ntweets)) %>% 
+  #thousand tweets
+  mutate(thousand_tweets = median_tweets/1000) %>% ungroup()
+#plot per week day
+ggplot(data=dcatperwday, aes(x=weekday, y=median_tweets, colour = predictions))+
+  geom_point()+ geom_line(aes(group=predictions))+
+  theme_bw()+
+  scale_colour_manual(values=mycols)+
+  ggtitle("Median tweets per weekday")
+ggplot(data=filter(dcatperwday, predictions !="irrelevant"), aes(x=weekday, y=median_tweets, colour = predictions))+
+  geom_point()+ geom_line(aes(group=predictions))+
+  theme_bw()+
+  scale_colour_manual(values=mycols)+
+  ggtitle("Median tweets per weekday (without irrelevant category)")
+ggplot(data=filter(dcatperwday, predictions =="coping" | predictions == "suicidality"), aes(x=weekday, y=median_tweets, colour = predictions))+
+  geom_point()+ geom_line(aes(group=predictions))+
+  theme_bw()+
+  scale_colour_manual(values=mycols)+
+  ggtitle("Median tweets per weekday: suicidality and coping category)")
+```
+
+* Slightly lower numbers on Sundays and Saturdays for irrelevant, prevention, awareness and Werther tweets. Tweets by organizations (e.g. media for Werther, Lifeline for prevention), or people more active on Twitter during weekdays. 
+* Slighly lower numbers of coping and suicidality tweets during weekends suggest that people use Twitter less during weekends. 

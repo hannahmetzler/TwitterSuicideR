@@ -83,5 +83,8 @@ dcatperday = ddprt %>%
   filter(date != as.Date("2012-12-31"))
 
 # save(dcatperday, file="tweets_other_datasets/Suicide_tweets_daily_volume_per_maincategory.R")
+write.csv2(dcatperday, "tweets_other_datasets/Suicide_tweets_daily_volume_per_maincategory.csv", row.names=F)
+library(haven)
+write_sav(dcatperday, "tweets_other_datasets/Suicide_tweets_daily_volume_per_maincategory.sav")
 
 
