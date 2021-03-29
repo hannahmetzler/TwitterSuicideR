@@ -34,10 +34,10 @@ dcatperday$monthyear=NULL
 
 We initially downloaded tweets from crimson hexagon on April 15th 2020, including all tweets containing a suicide-related term from January 1st 2013 to April 14th 2020. We excluded terms that clearly do not refer to suicide as the act of killing oneself. The query on Crimson Hexagon was: 
 
-  country:USA AND NOT engagementType:RETWEET AND language:en
-  AND (suicide OR suicidal OR "killed himself" OR "killed herself" OR "kill himself" OR "kill herself" OR "hung himself" OR "hung herself" OR "took his life" OR "took her life" OR "take his life" OR "take her life" OR "end his own life" OR "end her own life" OR "ended his own life" OR "ended her own life" OR "end his life" OR "end her life" OR "ended his life" OR "ended her life" OR "ends his life" OR "ends her life") 
-  AND NOT ("suicide squad" OR suicidechrist OR suicidegirl* OR suicideboy* OR suicideleopard OR suicidexjockey* OR "suicidal grind" OR bomber OR squad OR epstein OR Trump OR clinton* OR Hillary OR Biden OR sanders OR “political suicide”) 
-  AND NOT ("RT" OR "MT")
+    country:USA AND NOT engagementType:RETWEET AND language:en
+    AND (suicide OR suicidal OR "killed himself" OR "killed herself" OR "kill himself" OR "kill herself" OR "hung himself" OR "hung herself" OR "took his life" OR "took her life" OR "take his life" OR "take her life" OR "end his own life" OR "end her own life" OR "ended his own life" OR "ended her own life" OR "end his life" OR "end her life" OR "ended his life" OR "ended her life" OR "ends his life" OR "ends her life") 
+    AND NOT ("suicide squad" OR suicidechrist OR suicidegirl* OR suicideboy* OR suicideleopard OR suicidexjockey* OR "suicidal grind" OR bomber OR squad OR epstein OR Trump OR clinton* OR Hillary OR Biden OR sanders OR “political suicide”) 
+    AND NOT ("RT" OR "MT")
 
 We rehydrated these tweets a first time in April 2020, the resulting dataset included around 13.428 million tweets, of which only 9.584 million had unique ids. The machine learning models were trained on a random sample of manually annotated tweets from this sample. To get the number of retweets, we rehydrated a second time on March 14th 2021, which produced a sample of 8.892 million unique tweets. We then added the number of retweets to each tweet, to count the total number of times it was posted on Twitter. (Side note: the retweets are only on that date, but most retweets on Twitter happen with a couple of hours.)
 
@@ -54,7 +54,7 @@ To do:
 * increasing awareness and prevention efforts over the years
 
 ```{r}
-dcatperyear = dcatperday %>% 
+  dcatperyear = dcatperday %>% 
   group_by(year, predictions) %>% 
   summarise(ntweets = sum(ntweets)) %>% 
   #2020 is not a full year 
