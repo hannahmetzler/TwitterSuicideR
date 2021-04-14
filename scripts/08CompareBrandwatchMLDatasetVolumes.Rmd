@@ -1,5 +1,5 @@
 ---
-title: "Tweets per Category"
+title: "Compare Brandwatch volumes with ML predictions dataset volume"
 author: "Hannah Metzler"
 date: "14/04/2021"
 output: 
@@ -18,6 +18,7 @@ library(dplyr)
 library(ggplot2)
 library(viridis)
 library(tidyr)
+library(lubridate)
 #load data (origin: scripts folder, where this .Rmd file is)
 load("../data_tweet_volumes/Suicide_tweets_daily_volume_per_maincategory.R")
 # load("../data_tweet_volumes/Suicide_tweets_daily_volume_aboutsuicide.R")
@@ -72,12 +73,19 @@ dtotperday = dcatperday %>%
   pivot_longer(names_to = 'dataset', values_to = "ntweets", cols=c("ndaytotal", "bw_alltweets", "bw_noRTMT"))
 ```
 
-Percentage of tweets from our full text tweet sample for which we made BERT predictions in the total tweet volume as indicated by Brandwatch: divide daily volume in our sample by daily brandwatch volume: 
+Proportion of tweets from our full text tweet sample for which we made BERT predictions in the total tweet volume as indicated by Brandwatch: divide daily volume in our sample by daily brandwatch volume: 
 
 ```{r}
 boxplot(dtotperday$pr_ndaytotal_bw_alltweets)
 # boxplot(dtotperday$pr_ndaytotal_bw_alltweets)
+```
+
+```{r}
 hist(dtotperday$pr_ndaytotal_bw_alltweets)
+```
+
+Mean and median
+```{r}
 mean(dtotperday$pr_ndaytotal_bw_alltweets)
 median(dtotperday$pr_ndaytotal_bw_alltweets)
 ```
@@ -86,13 +94,24 @@ Summary: there are some days on which our sample of full tweets plus retweets ha
 
 * Could that be because all retweets are assigned to the same day in our sample, and on rare occasions, a lot of retweets happen on the day after? Sometimes, there is a low percentage on the day before the percentage goes above 100%, check if that is consistently so.
 
-* It could also be that the date on which brandwatch separates daily volumes is European because I download from Europe, and the actual date of each tweet (as in our full text sample) has the actually correct day. It looks a bit like there is such a lag. Below are the timelines for 2013, 2016, 2018, 2019-2020 (red=brandwatch volume). In later years, the comparison gets messier, there are more tweets we dont have that are still counte on Brandwatch, and some tweets that are not counted on Brandwatch??
+* It could also be that the date on which brandwatch separates daily volumes is European because I download from Europe, and the actual date of each tweet (as in our full text sample) has the actually correct day. So there would be a lag between our dataset and the Brandwatch dataset. 
+
+## Timeline across all years
+
+Ndaytotal is the ML predictions dataset volume per day. 
 
 ```{r}
 ggplot((dtotperday), aes(x=date, y = ntweets, colour=dataset))+
   geom_line()+theme_bw()+theme(legend.position=c(0.8,0.8))
-print("3 peaks above 200'000 in full brandwatch dataset")
-par( mfrow=c(4,2))
+```
+
+There are 3 peaks above 200'000 in full brandwatch dataset
+
+## Timeline for each year separately
+
+It looks a bit like there is such a lag in the earlier years. In later years, the comparison gets messier, there are more tweets we dont have that are still counte on Brandwatch, and some tweets that are not counted on Brandwatch??
+
+```{r}
 ggplot(filter(dtotperday, date < as.Date("2014-01-01")), aes(x=date, y = ntweets, colour=dataset))+
   geom_line()+theme_bw()+theme(legend.position=c(0.8,0.8))+
   ylim(0,200000)
@@ -131,7 +150,9 @@ ggplot(dtotpermonth, aes(x=monthdate, y = log(ntweets), colour=dataset))+
   geom_line(alpha=0.6)+theme_bw()
 ```
 
-How different are the total sample sizes? Sometimes our ML volume is almost half the full volume (2013-2017), but it is better in 2018-2020.
+## How different are the total sample sizes? 
+
+Sometimes our ML volume is almost half the full volume (2013-2017), but it is better in 2018-2020. Sample sizes in million tweets. 
 
 ```{r}
 dtotperyear = dtotperday %>%
@@ -141,7 +162,9 @@ dtotperyear = dtotperday %>%
 dtotperyear
 ```
 
-How much does the proportion between the full and ML dataset vary? If it is constant, the difference is not a big issue. Most of the time it is fine, the question is just if the outliers are meaningful. Maybe this is constant enough, around 0.5 until 2018, then more. 
+## How much does the proportion between the full and ML dataset vary? 
+
+If it is constant, the difference is not a big issue. Most of the time it is fine, the question is just if the outliers are meaningful. Maybe this is constant enough, around 0.5 until 2018, then more. 
 
 ```{r}
 dtotpermonth = dtotperday %>% 
