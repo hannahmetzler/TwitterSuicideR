@@ -39,6 +39,17 @@ dcatperday = dcatperday %>%
   rename(predictions = main_category_prediction)
 ```
 
+# Summary
+
+I built the dataset with ML predictions of tweet categories by taking the predictions for unique tweets, and adding the number of retweets. This means all retweets are assigned to the same day, while they are in reality sometimes posted after. This is usually fine, but sometimes differs from the actual volume of tweets across days quite a bit. See year 2017 and 2018 (ML dataset in blue, brandwatch datasets with/without RTs in red and green).
+Our ML dataset, across the years 2013-2020, contains only about 50/60% of all tweets that brandwatch indicates in its full tweet volume. Many tweets were probably deleted, some may have included the keywords "RT/MT" which we excluded to exclude retweets. This percentage is higher from 2018 onwards, where we approximate the full tweet volume better.
+In 2019, we quite often have peaks that are much higher than the full tweet volume, I do not quite understand how that can happen.
+There are some very high peaks of the volume that we miss almost entirely (see peak in summer 2014, peak in april 2016, summer 2019)
+Apart from a few peaks, the years 2013-2016 are quite alright, we capture the overall up and down pattern, even if we have only a proportion of the tweets.
+The years 2017-2019 are a lot messier. 
+
+So overall, the question is: Is the correspondence between actual tweet volumes (brandwatch) and our ML dataset volume good enough for going ahead with the time series analysis? 
+
 # Dataset description
 
 We initially downloaded tweets from crimson hexagon on April 15th 2020, including all tweets containing a suicide-related term from January 1st 2013 to April 14th 2020. We excluded terms that clearly do not refer to suicide as the act of killing oneself. The query on Crimson Hexagon was: 
@@ -55,10 +66,19 @@ Predictions were made with the BERT base model, fine-tuned (more epochs, smaller
 ## Controls: Three different total volume datasets
 
 1. Our dataset: ML Predictions were done for each unique tweet, and then adding the number of retweets of each unique ID tweet per day. We made sure to only include unique tweets by excluding both the mention type retweet and tweets with the keywords RT (retweet) or MT (modified tweet), which were still frequently used in 2013. Caveat here: if retweets are spread out across multiple days, they will all be assigned to the day of the original tweet in this dataset. 
-2. Brandwatch full volume: all English tweets from the US that match our keywords used to collect the ML dataset. No filters for retweets or keywords RT/MT. 3. Brandwatch volume filtered for the mention type retweet and the keywords RT/MT. This should be identical to our ML dataset, except for tweets that are still counted by Brandwatch, but for which the full text is no longer available (deleted tweets, or tweets from deleted accounts). 
+2. Brandwatch full volume: all English tweets from the US that match our keywords used to collect the ML dataset. No filters for retweets or keywords RT/MT.
+3. Brandwatch volume filtered for the mention type retweet and the keywords RT/MT. This should be identical to our ML dataset, except for tweets that are still counted by Brandwatch, but for which the full text is no longer available (deleted tweets, or tweets from deleted accounts). 
 
+### Brandwatch volumes with and without filtering for retweets
 
-# Total tweet volume per day - compare with Brandwatch volumes
+The full brandwatch volume, and the volume we used for ML training (RT filtered as type and keyword):
+
+![Brandwatch all tweets vs no RT](../figures/Suicide_tweets_US_weekly_vol_2013-2021_all_vs_no_RTs.pdf)
+Brandwatch volume filtered for mention type RT (blue) and in addition for the keywords RT and MT: This shows that retweets marked by these keywords were mainly and issue in 2013, and can be neglected if analyses focus on 2014 onward. 
+
+![Brandwatch filter plus keyword exclusion for RT](../figures/Suicide_tweets_US_weekly_vol_2013-2021_all_filtered_for_mentiontype_RT_vs_no_RTs.pdf)
+
+# Total tweet volume per day in ML prediction sample - compare with Brandwatch volumes
 
 ```{r}
 dtotperday = dcatperday %>% 
@@ -102,7 +122,7 @@ Ndaytotal is the ML predictions dataset volume per day.
 
 ```{r}
 ggplot((dtotperday), aes(x=date, y = ntweets, colour=dataset))+
-  geom_line()+theme_bw()+theme(legend.position=c(0.8,0.8))
+  geom_line(alpha=0.6)+theme_bw()+theme(legend.position=c(0.8,0.8))
 ```
 
 There are 3 peaks above 200'000 in full brandwatch dataset
@@ -117,7 +137,8 @@ ggplot(filter(dtotperday, date < as.Date("2014-01-01")), aes(x=date, y = ntweets
   ylim(0,200000)
 ggplot(filter(dtotperday, date > as.Date("2014-01-01") & date<as.Date("2015-01-01")),  aes(x=date, y = ntweets, colour=dataset))+
   geom_line()+theme_bw()+theme(legend.position=c(0.8,0.8))+
-  ylim(0,200000)
+  ylim(0,300000)+
+  ggtitle('different y scale!')
 ggplot(filter(dtotperday, date > as.Date("2015-01-01") & date<as.Date("2016-01-01")),  aes(x=date, y = ntweets, colour=dataset))+
   geom_line()+theme_bw()+theme(legend.position=c(0.8,0.8))+
   ylim(0,200000)
