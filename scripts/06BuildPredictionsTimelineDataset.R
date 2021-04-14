@@ -126,9 +126,9 @@ dsuiperday = ddprt%>%
 library(haven)
 
 #main category datafiles
-save(dcatperday, file="tweets_other_datasets/Suicide_tweets_daily_volume_per_maincategory.R")
-write.csv2(dcatperday, "tweets_other_datasets/Suicide_tweets_daily_volume_per_maincategory.csv", row.names=F)
-write_sav(dcatperday, "tweets_other_datasets/Suicide_tweets_daily_volume_per_maincategory.sav")
+save(dcatperday, file="data_tweet_volumes/Suicide_tweets_daily_volume_per_maincategory.R")
+write.csv2(dcatperday, "data_tweet_volumes/Suicide_tweets_daily_volume_per_maincategory.csv", row.names=F)
+write_sav(dcatperday, "data_tweet_volumes/Suicide_tweets_daily_volume_per_maincategory.sav")
 
 #about suicide datafiles
 save(dsuiperday, file="data_tweet_volumes/Suicide_tweets_daily_volume_aboutsuicide.R")
