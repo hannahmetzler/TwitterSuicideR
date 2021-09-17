@@ -17,7 +17,9 @@ options(scipen=99)
 library(dplyr)
 library(ggplot2)
 library(cowplot)
+library(stringr) #for string manipulation
         # library(RColorBrewer)
+library(lubridate) #to format dates
 ```
 
 
@@ -59,6 +61,45 @@ d <- d %>%
          about_suicide = factor(about_suicide, levels = c(0,1), labels = c("no", "yes")),
          notserious_unclear = factor(notserious_unclear, levels = c(0,1), labels = c("no", "yes")))
 ```
+
+
+```{r, time format}
+#format the timestamp column to identical date format
+d = d %>% 
+  #types of formats that exist in the dataset
+  #1: Mon Mar 04 19:52:34 +0000 2019 "%a %b %d %H:%M:%S +0000 %Y", 
+  #2: 12/28/19 12:52 AM "%Y/%m/%d %h:%M"
+  #3: 2017-02-27 23:07:40 "%Y-%m-%d %H:%M:%S"
+#recode to common format: yyyy-mm-dd
+  mutate(date = case_when(
+    str_detect(timestamp, "0000") == TRUE  ~ as.Date(timestamp, format = "%a %b %d %H:%M:%S +0000 %Y"), #2184 NAs, type b
+    str_detect(timestamp, "/") == TRUE     ~ as.Date(timestamp, format = "%m/%d/%Y %I:%M"), #2502 NAs, type c
+    str_detect(timestamp, "-") == TRUE     ~ as.Date(timestamp, format = "%Y-%m-%d %H:%M:%S") #2596 NAs, type a
+  )) %>% 
+  mutate(date = lubridate::ymd(date))
+
+```
+
+# Time span across which tweets in training set were originally posted
+```{r}
+ggplot(d, aes(x=date))+
+  geom_histogram()
+d %>% 
+  group_by(lubridate::year(date)) %>% 
+  summarise(nyear = n()) %>% 
+  ungroup()
+```
+
+First and last date
+
+```{r}
+d %>% 
+  arrange(d) %>% slice_head() %>% select(date)
+d %>% 
+  arrange(d) %>% slice_tail()%>% select(date)
+```
+
+
 
 # Proportions for different categories in the final training data set, stats and figures 
 
