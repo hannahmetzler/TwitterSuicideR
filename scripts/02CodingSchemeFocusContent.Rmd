@@ -48,17 +48,22 @@ as.data.frame(xtabs(~Category, data=totaltrain))
 Do all categories have the right focus coded?
 
 - Suicide_other can be all 3 narratives/foci
+- Off-topic are all neither of them 
 - Werther can rarely be about a suicide case and still focused on prevention, see 7 instances below
 
 ```{r}
 as.data.frame(xtabs(~focus+Category, data=totaltrain))
-totaltrain %>% 
-  filter(Category=="Werther" & focus == "2") %>% 
-  select(Category, focus, Contents)
+# #look at the example tweets
+# totaltrain %>% 
+#   filter(Category=="Werther" & focus == "2") %>% 
+#   select(Category, focus, Contents)
 ```
 
+Which categories can be labelled as non-serious? Only suicide other or off-topic tweets. 
 
-
+```{r}
+as.data.frame(xtabs(~notserious_unclear+Category, data=totaltrain))
+```
 
 
 # Frequency of categories in a random sample of 1000 tweets
@@ -149,7 +154,6 @@ prop.notserious <- as.data.frame(coded %>%
 Out of the off-topic and suicide_other tweets, about `r round(prop.notserious$freq[2], 2)*100`% are jokes, sarcastic, metaphors or 
 
 # Frequency in training sample
-
 
 ```{r}
 coded = totaltrain %>% 
@@ -248,4 +252,6 @@ str_subset(coded$Contents, "It's a cry for help that went unanswered.") # "in ov
 coded$Contents = str_replace_all(coded$Contents, "\n","")
 #write.table(coded,'../tweet_training_set/training_posts20201105_3181tweets.tsv', sep = "\t", row.names=F) 
 ```
+  
+
 

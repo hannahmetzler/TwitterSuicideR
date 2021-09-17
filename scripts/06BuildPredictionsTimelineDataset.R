@@ -18,24 +18,21 @@ library(beepr) # to beep after a long analysis is finished
 Sys.setlocale("LC_ALL", 'en_US.UTF-8')
 
 #read data predictions from Hubert's model: BERT, trained on unbalanced dataset (no articificial data)
-dp <- read.csv('tweets_other_datasets/twitter_13M_with_predictions.csv', stringsAsFactors=F, sep='\t', colClasses = "character") %>%
-  mutate(main_category = factor(main_category), 
-         about_suicide = factor(about_suicide)) %>% 
-  rename(id = ID) %>% 
- #rename factor levels and variables
-  mutate(about_suicide = factor(about_suicide, labels = c("yes", "no"))) %>% 
-  rename(about_suicide_prediction = about_suicide, 
-         main_category_prediction = main_category)  %>% 
+dp <- read.csv('tweets_other_datasets/twitter_13M_with_predictions.csv', stringsAsFactors=F, sep='\t', colClasses = "character") %>% #colnames: time ID text main_category about_suicide
+  mutate(main_category = factor(main_category),
+         about_suicide = factor(about_suicide)) %>%
+  rename(id = ID) %>%
   #delete the +0000 in the time string, split before and after, and rename each substring
-  mutate(time = str_split_fixed(time, " \\+0000 ", n=2)) %>% 
-  mutate(year = time[,2], 
-         date_time = time[,1]) %>% 
+  mutate(time = str_split_fixed(time, " \\+0000 ", n=2)) %>%
+  mutate(year = time[,2],
+         date_time = time[,1]) %>%
   #delete the matrix with both substrings
-  select(-time) %>% 
+  select(-time) %>%
   #join date/time + year together, and reformat the resulting date to yyyy-mm-dd
   mutate(time = str_c(date_time, year, sep = " "),
-         date = as.Date(time, format = "%a %b %e %H:%M:%S %Y")) %>% 
+         date = as.Date(time, format = "%a %b %e %H:%M:%S %Y")) %>%
   select(-c(date_time, time, year))
+
 
 # length(unique(dp$id)) #9 583 294, rows: 13 427 526
 
