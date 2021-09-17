@@ -66,7 +66,7 @@ Thomas developed a more fine-grained coding scheme based on which we later devel
     - If no specific suggestion is made on what someone can do it is rather awarenss than prevention. This also applies to events eg „prevention week“ without any specification about what specifically can be done—awareness. 
     - General broad recommendations that don‘t provide concrete instructions on what to do are awareness. Listing warning signs of suicide or saying „what to watch out“ are awareness not prevention because do not say how to do it. 
 * Off-topic:  
-      - not related to topic of suicide / suicidality /prevention or
+    - not related to topic of suicide / suicidality /prevention or
     - anything not clearly related to any other category should go here
     - Flippant remarks, suspected irony or suspected exaggerations
     - Euthanasia tweets are irrelevant
@@ -80,8 +80,8 @@ Thomas developed a more fine-grained coding scheme based on which we later devel
 ```{r, round 1, results="hide"}
 
 #original codings before discussing new rules on June 26, 2020
-dfh <- read.csv('../model_predictions_reliability/round1_500_suicide_Hannah_4categories.csv', stringsAsFactors = F) #data frame hannah, includes predictions
-dft <- read.csv('../model_predictions_reliability/round1_500_suicide_Thomas_6categories.csv', stringsAsFactors=F)  %>% #data frame thomas
+dfh <- read.csv('../reliability_datasets/round1_500_suicide_Hannah_4categories.csv', stringsAsFactors = F) #data frame hannah, includes predictions
+dft <- read.csv('../reliability_datasets/round1_500_suicide_Thomas_6categories.csv', stringsAsFactors=F)  %>% #data frame thomas
    mutate(Thomas = recode(Thomas, Irrelevant = "Off-topic"))
 
 unique(dft$Thomas)
@@ -113,7 +113,7 @@ unique(df$predicted4)
 (xtabs(~hannah4+thomas4, df))
 #cohen's kappa
 irr::kappa2(df[c("thomas4", "hannah4")])
-```
+  ```
 
 <!-- Examples for tweets where Hannah and Thomas don't agree:  -->
 
@@ -149,10 +149,12 @@ irr::kappa2(df[c("thomas4", "predicted4")])
   
 # Round 2 intereliability
 
+Biased by discussions on the set of tweets that is used to calculated interreliability - does not reflect actual interrater reliability. 
+
 ```{r, round 2, results="hide"}
 #updated codings implementing the new coding rules - see Coding system Tweets 200630  
-  dfh <- read.csv('../model_predictions_reliability/round2_500_suicide_Hannah_4categories.csv', stringsAsFactors = F) #data frame hannah, includes predictions
-  dft <- read.csv('../model_predictions_reliability/round2_500_suicide_Thomas_6categories.csv', stringsAsFactors=F)  %>% #data frame thomas
+dfh <- read.csv('../reliability_datasets/round2_500_suicide_Hannah_4categories.csv', stringsAsFactors = F) #data frame hannah, includes predictions
+dft <- read.csv('../reliability_datasets/round2_500_suicide_Thomas_6categories.csv', stringsAsFactors=F)  %>% #data frame thomas
     mutate(Thomas = recode(Thomas, Irrelevant = "Off-topic"))
 
 unique(dft$Thomas)
@@ -234,7 +236,7 @@ The two new Werther categories do not need to be distinguished during coding, be
 * Awareness
 * Prevention
 * Off-topic
-
+  
 
 \newpage
 
@@ -245,8 +247,7 @@ How many tweets have we already coded per category? Combined training sample of 
 ```{r}
 training <- read.csv('../tweet_training_set/training_posts20200717.csv', stringsAsFactors = F) #new training sample July 2020 with 6 categories
 as.data.frame(xtabs(~Category, data=training))
-#write.csv(xtabs(~Category, data=training), file="tweet_training_set/tweets_per_category.csv")
-
+#write.csv(xtabs(~Category, data=training), file="tweet_training_set/tweets_per_category.csv")    
 ```
 
 About every 3rd tweet was predicted correctly by Infersent predicitons. If we want to get to 200 per category, missing number of tweets are per category: 
@@ -259,7 +260,7 @@ So we need to code 400 more for Papageno categories, 200 for Prevention and 150 
 
 ```{r}
 ### New test set: Round 3 - create the file for Thomas and Hannah
-dfi <- read.csv('../model_predictions_reliability/round3_2000_suicide_predictions_infersent_6categories.csv', stringsAsFactors = F) %>% 
+dfi <- read.csv('../reliability_datasets/round3_2000_suicide_predictions_infersent_6categories.csv', stringsAsFactors = F) %>% 
   rename(tweetid = GUID, 
          timestamp = Date..CET., 
          contents = Contents, 
@@ -302,7 +303,7 @@ dround3 <- rbind(dpapageno, dprevention,dwerther) %>%
 ```{r, Write datasets without predictions for coding}
 
 #Write datasets without predictions for coding: 
-
+  
 #randomly sort tweets (I forgot to set a seed, so use the .csv files below to reconstruct)
 dround3rand <- dround3 %>% 
   sample_n(size=nrow(dround3), replace=FALSE)
@@ -316,8 +317,8 @@ dround3_nopred$coder <- rep(c("Hannah", "Thomas"), each = nrow(dround3)/2) #code
 dround3_nopred <- dround3_nopred[,c("tweetid", "timestamp", "set", "coder", "contents")]
 
 # #write files for coding
-# write.csv2(filter(dround3_nopred, coder =="Hannah"), file="model_predictions_reliability/round3_504_suicide_Hannah_6categories_empty.csv", row.names=F)
-# write.csv2(filter(dround3_nopred, coder =="Thomas"), file="model_predictions_reliability/round3_504_suicide_Thomas_6categories_empty.csv", row.names=F)
+# write.csv2(filter(dround3_nopred, coder =="Hannah"), file="reliability_datasets/round3_504_suicide_Hannah_6categories_empty.csv", row.names=F)
+# write.csv2(filter(dround3_nopred, coder =="Thomas"), file="reliability_datasets/round3_504_suicide_Thomas_6categories_empty.csv", row.names=F)
 ```
   
 ```{r, coding round 3b}
@@ -344,11 +345,11 @@ dround3b_nopred <- dround3brand %>%
     select(-predicted6) #delete the model predictions
 dround3b_nopred$coder <- rep(c("Hannah"), each = nrow(dround3b)) #add coder name
 dround3b_nopred <- dround3b_nopred[,c("tweetid", "timestamp", "set", "coder", "contents")]#change column order for hand coding
-#write.csv2(dround3b_nopred, file="../model_predictions_reliability/round3b_342_suicide_Hannah_6categories_empty.csv", row.names=F)
+#write.csv2(dround3b_nopred, file="../reliability_datasets/round3b_342_suicide_Hannah_6categories_empty.csv", row.names=F)
 #careful when opening this csv for coding in LibreOffice Calc or Excel: Tweet IDs get converted to numbers and rounded, unless you specify the column has to be text before opening it. 
 
 #load this file with codings/annotations: 
-dround3b_hannah <- read.csv2('../model_predictions_reliability/round3b_342_suicide_Hannah_6categories_empty.csv') %>% 
+dround3b_hannah <- read.csv2('../reliability_datasets/round3b_342_suicide_Hannah_6categories_empty.csv') %>% 
   mutate(tweetid = as.character(tweetid), 
          contents = as.character(contents))
 str(dround3b_hannah)
@@ -361,8 +362,8 @@ Hannah deleted duplicates and tweets already contained in previous coded data se
 
 ```{r}
 #read codings
-dh3 <- read.csv('../model_predictions_reliability/round3_504_suicide_Hannah_6categories.csv', stringsAsFactors = F) 
-dt3 <- read.csv('../model_predictions_reliability/round3_504_suicide_Thomas_6categories.csv', stringsAsFactors = F)
+dh3 <- read.csv('../reliability_datasets/round3_504_suicide_Hannah_6categories.csv', stringsAsFactors = F) 
+dt3 <- read.csv('../reliability_datasets/round3_504_suicide_Thomas_6categories.csv', stringsAsFactors = F)
 
 d3 <- rbind(dh3, dt3)
 #dim(d3)
@@ -502,7 +503,7 @@ head(noncoded)
 dim(dfi1)
 ```
 
-Konstantin has also written a python script to exclude duplicates based on text, and to replace shortened Tweet IDs after opening with excel with the initial correct Tweet IDs. These are on the server in his folder: /home/khebenstreit/fastai2own/share/suicide-twitter
+Konstantin  also has written a python script to exclude duplicates based on text, and to replace shortened Tweet IDs after opening with excel with the initial correct Tweet IDs. These are on the server in his folder: /home/khebenstreit/fastai2own/share/suicide-twitter
 
 
 
