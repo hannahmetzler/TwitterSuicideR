@@ -1,4 +1,4 @@
-  ---
+---
 title: "Intercoder Reliability Suicide Tweets"
 author: "Hannah Metzler"
 date: "30/7/2020"
@@ -16,11 +16,12 @@ Sys.setlocale("LC_ALL", 'en_US.UTF-8')
 options(scipen=99)
 library(dplyr)
 library(stringr)
+library(tidyr)
 library(irr)
-library(xfun)
+# library(xfun)
 library(caret)
-library(forcats)
-library(RColorBrewer)
+# library(forcats)
+# library(RColorBrewer)
 ```
 
 # Coding a sample of 500 tweets, 100 per category predicted with Infersent
@@ -504,6 +505,7 @@ dim(dfi1)
 ```
 
 Konstantin  also has written a python script to exclude duplicates based on text, and to replace shortened Tweet IDs after opening with excel with the initial correct Tweet IDs. These are on the server in his folder: /home/khebenstreit/fastai2own/share/suicide-twitter
+
 
 
 
