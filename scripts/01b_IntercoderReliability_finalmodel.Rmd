@@ -85,7 +85,7 @@ dt4 <- read.csv('../reliability_datasets/round4_150x5_suicide_Thomas_complete_ID
 # 
 # #empty labels saved in this dataset, it was mostly focus labels missing, completed
 # d = dt4 %>% filter(emptycategory == TRUE | emptyfocus == TRUE | emptynotserious == TRUE)
-# # write.csv2(file="../output/missinglabels_reliability_round4_Thomas.csv",d, row.names=F)
+# # write.csv2(file="../output/empty_labels_reliability_round4_Thomas.csv",d, row.names=F)
 
 
 #rename x in all category columns to the name of the category, so they can all be merged into one column next
@@ -151,7 +151,7 @@ dt4 <- read.csv('../reliability_datasets/round4_150x5_suicide_Thomas_complete_ID
                                 life_saved = "irrelevant", suicide_other = "irrelevant", "off-topic" = "irrelevant", 
                                 coping1 = "coping", coping3 = "coping", suicidality1 = "suicidality", suicidality3 = "suicidality"))) %>% 
   droplevels() #delete the empty levels
-# # #here we had 2 duplicates, because Thomas' file contained duplicate seriousvsnot labels for 1 tweet.613152024935460864. 1 was deleted. 
+# # #here we had 2 duplicates, because Thomas' file contained duplicate seriousvsnot labels for 1 tweet. 613152024935460864. 1 was deleted. 
 # janitor::get_dupes(dt4, id)
 ```
 
@@ -174,13 +174,27 @@ d4 = d4[, c("id", "time", "text",
             "notserious_unclear.hannah", "notserious_unclear.thomas", 
             "notes.hannah", "notes.thomas")]
 ```
+
+
 # How many true labels do we have per category? 
 
 ```{r}
 xtabs(~main_category, dh4)
+xtabs(~main_category, dt4)
 ```
 
 We need 21 more awareness tweets to have 100 per category. 
+
+```{r,data for labelling more tweets}
+#join missing labels and duplicate labels with new awareness tweet candidates
+missing_ids = read.csv("../output/empty_labels_reliability_round4_Thomas.csv", colClasses = "character")$id
+dupe_ids = c("994362285744443392", "1173390237801820161", "613152024935460864")
+d = d4 %>% 
+  filter(id %in% dupe_ids | id %in% missing_ids) %>% 
+  select( c("id", "category.thomas", "focus.thomas", "notserious_unclear.thomas", "notes.thomas", "text"))
+write.table(file="../output/labels_thomas_missing_duplicates.tsv", d, sep="\t", row.names = F)
+
+```
 
 
 # Hannah and BERT
