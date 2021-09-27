@@ -1,0 +1,322 @@
+---
+title: "Tweets per Category in the ML predictions dataset (BERT)"
+author: "Hannah Metzler"
+date: "3/16/2021"
+output: 
+  pdf_document:
+    df_print: kable
+    keep_tex: true
+url_colour: blue
+always_allow_html: yes
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, message=FALSE, warning=FALSE, results=T)
+Sys.setlocale("LC_ALL", 'en_US.UTF-8')
+options(scipen=99)
+library(dplyr)
+library(ggplot2)
+library(viridis)
+library(tidyr)
+library(lubridate)
+#load data (origin: scripts folder, where this .Rmd file is)
+load("../data_tweet_volumes/Suicide_tweets_daily_volume_per_maincategory.R")
+# load("../data_tweet_volumes/Suicide_tweets_daily_volume_aboutsuicide.R")
+
+#our source script (but this takes a couple of minutes)
+# source('06BuildPredictionsTimelineDataset.R')
+
+#assign colours to categories: 
+catcols = viridis(6)
+mycols = c("awareness"= catcols[1], "werther"=catcols[6], "prevention"=catcols[4], "suicidality"=catcols[5], "coping"=catcols[2], "irrelevant"=catcols[3])
+
+#rename main_category_predictions to predictions, but keep in mind about_suicide_n is also calculated based on model predictions (with the categories yes/no)
+dcatperday = dcatperday %>% 
+  rename(predictions = main_category_prediction)
+```
+
+# Dataset description
+
+We initially downloaded tweets from crimson hexagon on April 15th 2020, including all tweets containing a suicide-related term from January 1st 2013 to April 14th 2020. We excluded terms that clearly do not refer to suicide as the act of killing oneself. The query on Crimson Hexagon was: 
+
+    country:USA AND NOT engagementType:RETWEET AND language:en
+    AND (suicide OR suicidal OR "killed himself" OR "killed herself" OR "kill himself" OR "kill herself" OR "hung himself" OR "hung herself" OR "took his life" OR "took her life" OR "take his life" OR "take her life" OR "end his own life" OR "end her own life" OR "ended his own life" OR "ended her own life" OR "end his life" OR "end her life" OR "ended his life" OR "ended her life" OR "ends his life" OR "ends her life") 
+    AND NOT ("suicide squad" OR suicidechrist OR suicidegirl* OR suicideboy* OR suicideleopard OR suicidexjockey* OR "suicidal grind" OR bomber OR squad OR epstein OR Trump OR clinton* OR Hillary OR Biden OR sanders OR “political suicide”) 
+    AND NOT ("RT" OR "MT")
+
+We rehydrated these tweets a first time in April 2020, the resulting dataset included around 13.428 million tweets, of which only 9.584 million had unique ids. The machine learning models were trained on a random sample of manually annotated tweets from this sample. To get the number of retweets, we rehydrated a second time on March 14th 2021, which produced a sample of 8.892 million unique tweets. We then added the number of retweets to each tweet, to count the total number of times it was posted on Twitter. (Side note: the retweets are only on that date, but most retweets on Twitter happen with a couple of hours.)
+
+Predictions were made with the BERT base model, fine-tuned (more epochs, smaller learning rate, check with Hubert for details). 
+
+# Sample descriptives 
+## Total sample size, and sample per year 
+
+```{r}
+dcatperday %>%
+  group_by(date) %>% #only first line of 6 categories (ndaytotal is the same on each line)
+  slice(1) %>% 
+  ungroup() %>% 
+  summarise(mio_tweets = sum(ndaytotal)/1000000)
+
+dcatperday %>%
+  group_by(date) %>% #only first line of 6 categories (ndaytotal is the same on each line)
+  slice(1) %>% 
+  group_by(year) %>% 
+  summarise(mio_tweets = sum(ndaytotal)/1000000) %>% 
+  #2020 is not a full year 
+  filter(year!="2020")
+```
+
+## Total number of tweets per category by year
+
+* Irrelevant increase over the years may simply reflect increase in tweets overall. Irrelevant includes tweets about suicide not belonging in any other category, and off-topic tweet (metaphors, jokes, euthansia, bombings,...). 
+* the total volume (sum of all categories) is shown in black
+
+```{r}
+dcatperyear = dcatperday %>% 
+  group_by(year, predictions) %>% 
+  summarise(ntweets = sum(ntweets), 
+            pr = sum(ntweets)/sum(ndaytotal)) %>% 
+  group_by(year) %>% 
+       mutate(ntotal = sum(ntweets)) %>% 
+  #2020 is not a full year 
+  filter(year!="2020") %>% 
+  #million tweets
+  mutate(mio_tweets = ntweets/1000000,
+         mio_total = ntotal/1000000)
+
+#plot per year
+ggplot(data=dcatperyear, aes(x=year, y=ntweets))+
+  geom_point(aes(colour = predictions))+ geom_line(aes(colour = predictions))+
+  geom_point(aes(x=year, y=ntotal))+  geom_line(aes(x=year, y=ntotal))+
+  #show total tweets with suicide terms per year (sum of all categories)
+  # geom_line(data=dtotperyear, aes(x=year, y=ndaytotal))+
+  theme_bw()+
+  scale_colour_manual(values=mycols)+
+  scale_x_continuous(n.breaks=7)
+```
+
+```{r}
+ggplot(data=filter(dcatperyear, predictions!="irrelevant"), aes(x=year, y=mio_tweets, colour = predictions))+
+  geom_point()+ geom_line()+
+  theme_bw()+
+  scale_colour_manual(values=mycols)+
+  scale_x_continuous(n.breaks=7)+
+  ggtitle(" Same plot without the category Irrelevant")
+  
+```
+
+* also shows the general increase for Werther tweets. 
+* the increase exists since 2017, but is much smaller, for coping and suicidality tweets
+
+The percentage of tweets per category decreased for irrelevant, and increased for the other categories. 
+
+```{r}
+#plot per year
+ggplot(data=dcatperyear, aes(x=year, y=pr))+
+  geom_point(aes(colour = predictions))+ geom_line(aes(colour = predictions))+
+  theme_bw()+
+  scale_colour_manual(values=mycols)+
+  scale_x_continuous(n.breaks=7)+ggtitle("Percentage of tweets per category in total number of tweets")
+```
+
+
+# Tweets per month in one example year, here 2017
+
+To compare with the volume on Brandwatch and in each category. 
+
+* On Brandwatch, October 2017 has 170.000 without retweets, 380.000 with all tweets. 185.000 in our dataset lies in that range. 
+* On Brandwatch, January 2017 has 160.000 without retweets, 555.000 with all tweets. 193.000 in our dataset lies in that range. 
+
+```{r}
+#per month in 2017
+dcatperday %>% 
+  mutate(month = floor_date(date, unit="month")) %>% 
+  group_by(month) %>% 
+  summarise(ntweets = sum(ntweets)) %>% 
+  filter(month>as.Date("2016-12-31")) %>% 
+  slice(1:12)
+```
+
+
+# Monthly pattern? Total number of tweets per month (averaged across 7 years)
+
+```{r}
+dcatpermonth = dcatperday %>% 
+  filter(date < as.Date("2020-04-01")) %>% #no full month of data
+  group_by(month, predictions) %>% 
+  summarise(ntweets = sum(ntweets)) %>% 
+  #thousand tweets
+  mutate(thousand_tweets = ntweets/1000) %>% ungroup()
+#plot per month
+ggplot(data=dcatpermonth, aes(x=month, y=ntweets, colour = predictions))+
+  geom_point()+ geom_line(aes(group=predictions))+
+  theme_bw()+
+  scale_colour_manual(values=mycols)
+
+```
+
+* Open question: Are the peaks in certain categories driven by outlier months in some years, or general patterns?
+    - September: world suicide prevention day is likely a general pattern
+    - Werther/Prevention ups and downs are probably influenced by celebrity suicides in one or some of the years.
+
+# Monthly timeline across years (January 2013 to March 2020)
+
+```{r}
+#monthly timeseries
+dtsmonthly = dcatperday %>% 
+  #filter(date < as.Date("2020-04-01")) %>% #no full month of data
+  group_by(year, month, predictions) %>% 
+  summarise(ntweets = sum(ntweets)) %>% 
+  #thousand tweets
+  mutate(thousand_tweets = ntweets/1000) %>% ungroup() %>% 
+#add median per month 
+  group_by(month, predictions) %>% 
+  mutate(ntweets_median = median(ntweets))
+
+#plot per month
+ggplot(data=dtsmonthly)+
+  geom_point(aes(x=month, y=ntweets, colour = predictions))+ 
+  geom_line(aes(x=month, y=ntweets_median, group=predictions, colour=predictions))+
+  theme_bw()+
+  scale_colour_manual(values=mycols)+
+  ggtitle("One dot per year, median as a line")
+```
+
+* This shows that the peaks of awareness in June, Werther in June, Dec were driven by one single year (maybe celebrity deaths).
+
+More detailed picture (without irrelevant category):
+
+```{r}
+ggplot(data=filter(dtsmonthly, predictions!="irrelevant"))+
+  geom_point(aes(x=month, y=ntweets, colour = predictions))+ 
+  geom_line(aes(x=month, y=ntweets_median, group=predictions, colour=predictions))+
+  theme_bw()+
+  scale_colour_manual(values=mycols)+
+  ggtitle("One dot per year, median as a line (without irrelevant)")
+```
+
+
+
+```{r}
+ggplot(data=filter(dtsmonthly, predictions!="irrelevant"))+
+  # geom_violin(aes(x=month, y=ntweets, colour = predictions))+ 
+  geom_point(aes(x=month, y=ntweets, colour = predictions))+ 
+  geom_line(aes(x=month, y=ntweets_median, group=predictions, colour=predictions))+
+  facet_wrap(~predictions)+
+  theme_bw()+
+  scale_colour_manual(values=mycols)+
+  theme(axis.text.x=element_text(angle=60, hjust=1), axis.title.x=element_blank(), legend.position="none")+
+  ggtitle("One dot per year, median as a line")
+```
+
+* This shows that the coping peak in May comes from two outliers only, the one in November just from one outlier. 
+* September prevention is systematically higher (world suicide prevention day). Maybe also slightly higher around Christmas. 
+* One big awareness outlier in the month of February. 
+* The Werther outlier in June could be Spade and Bourdain in 2018?
+
+# Entire timeline of daily tweets per category
+
+```{r}
+ggplot(data=dcatperday, aes(x=date, y=ntweets, colour = predictions))+
+  geom_line()+
+  theme_bw()+
+  scale_colour_manual(values=mycols)
+```
+
+```{r, coping suicidality daily}
+ggplot(data=filter(dcatperday, predictions=="coping" | predictions=="suicidality"), 
+                   aes(x=date, y=ntweets, colour = predictions))+
+    geom_line()+ facet_wrap(~predictions, ncol=1)+
+  theme_bw()+theme(legend.position="none")+
+  scale_colour_manual(values=mycols)+
+  ggtitle("Only coping and suicidality")
+```
+On which days are these highest peaks?
+
+```{r}
+dcatperday %>% 
+ filter(predictions=="coping" | predictions=="suicidality") %>% 
+  filter(ntweets>10000) %>% 
+  select(predictions, date, ntweets) %>% 
+  arrange(predictions)
+```
+
+## Awareness, Prevention, Werther
+
+```{r}
+ggplot(data=filter(dcatperday, predictions=="awareness" | predictions=="prevention"  | predictions=="werther"), 
+                   aes(x=date, y=ntweets, colour = predictions))+
+  geom_line()+ facet_wrap(~predictions, ncol=1)+
+  theme_bw()+theme(legend.position="none")+
+  scale_colour_manual(values=mycols)
+ggplot(data=filter(dcatperday, predictions=="awareness" | predictions=="prevention"  | predictions=="werther"), 
+                   aes(x=date, y=ntweets, colour = predictions))+
+  geom_line()+ facet_wrap(~predictions, ncol=1)+
+  theme_bw()+theme(legend.position="none")+
+  scale_colour_manual(values=mycols)+ggtitle("same plots with peaks above 35.000 cut")+
+  ylim(0, 35000)
+```
+
+* 9 large awareness peaks above 15.000 daily tweets:
+
+```{r}
+dcatperday %>% 
+  filter(predictions=="awareness") %>% 
+  filter(ntweets>15000) %>% 
+  select(date, ntweets)
+```
+
+* 13 large prevention peaks, above 12000 daily tweets:
+    - every year on September 10th
+    - in 2019, 2018, 2017: 1-3 days before before Christmas
+    - other irregular events to stil lidentify and check if they make sense: 2016-11-09, 2017-03-19, 2019-09-02, 
+    - in 2020: start of the pandemic: 2020-03-11
+
+```{r}
+dcatperday %>% 
+  filter(predictions=="prevention") %>% 
+  filter(ntweets>12000) %>% 
+  select(date, ntweets)
+```
+
+
+* 12  large Werther peaks, above 12000 daily tweets (there are several other important but smaller peaks):
+    - 2018-06-05 is likely Spade/Bourdain, others need to be identified
+
+```{r}
+dcatperday %>% 
+  filter(predictions=="werther") %>% 
+  filter(ntweets>12000) %>% 
+  select(date, ntweets)
+```
+
+
+# Weekly pattern? Total number of tweets per weekday (averaged across 7 years)
+
+```{r}
+dcatperwday = dcatperday %>% 
+  group_by(weekday, predictions) %>% 
+  summarise(median_tweets = median(ntweets)) %>% 
+  #thousand tweets
+  mutate(thousand_tweets = median_tweets/1000) %>% ungroup()
+#plot per week day
+ggplot(data=dcatperwday, aes(x=weekday, y=median_tweets, colour = predictions))+
+  geom_point()+ geom_line(aes(group=predictions))+
+  theme_bw()+
+  scale_colour_manual(values=mycols)+
+  ggtitle("Median tweets per weekday")
+ggplot(data=filter(dcatperwday, predictions !="irrelevant"), aes(x=weekday, y=median_tweets, colour = predictions))+
+  geom_point()+ geom_line(aes(group=predictions))+
+  theme_bw()+
+  scale_colour_manual(values=mycols)+
+  ggtitle("Median tweets per weekday (without irrelevant category)")
+ggplot(data=filter(dcatperwday, predictions =="coping" | predictions == "suicidality"), aes(x=weekday, y=median_tweets, colour = predictions))+
+  geom_point()+ geom_line(aes(group=predictions))+
+  theme_bw()+
+  scale_colour_manual(values=mycols)+
+  ggtitle("Median tweets per weekday: suicidality and coping category)")
+```
+
+* Slightly lower numbers on Sundays and Saturdays for irrelevant, prevention, awareness and Werther tweets. Tweets by organizations (e.g. media for Werther, Lifeline for prevention), or people more active on Twitter during weekdays. 
+* Slighly lower numbers of coping and suicidality tweets during weekends suggest that people use Twitter less during weekends. 

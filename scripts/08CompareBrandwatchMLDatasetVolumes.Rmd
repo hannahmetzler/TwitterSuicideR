@@ -1,0 +1,204 @@
+---
+title: "Compare Brandwatch volumes with ML predictions dataset volume"
+author: "Hannah Metzler"
+date: "14/04/2021"
+output: 
+  pdf_document:
+    df_print: kable
+    keep_tex: true
+url_colour: blue
+always_allow_html: yes
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, message=FALSE, warning=FALSE, results=T)
+Sys.setlocale("LC_ALL", 'en_US.UTF-8')
+options(scipen=99)
+library(dplyr)
+library(ggplot2)
+library(viridis)
+library(tidyr)
+library(lubridate)
+#load data (origin: scripts folder, where this .Rmd file is)
+load("../data_tweet_volumes/Suicide_tweets_daily_volume_per_maincategory.R")
+# load("../data_tweet_volumes/Suicide_tweets_daily_volume_aboutsuicide.R")
+
+#read in brandwatch volume data to compare the number of tweets per day, bw=Brandwatch, all tweets are all english/US tweets with a keyword, noRTMT are same the same query with filter for mention type retweet and excluded terms RT/MT (for the year 2013 in which mention type did not yet exist)
+db = read.csv('../data_tweet_volumes/suicide_tweetsall&withoutRT_daily_vol_US_2013-2021Brandwatch.csv') %>% 
+  mutate(date = as.Date(date))
+
+#our source script (but this takes a couple of minutes)
+# source('06BuildPredictionsTimelineDataset.R')
+
+#assign colours to categories: 
+catcols = viridis(6)
+mycols = c("awareness"= catcols[1], "werther"=catcols[6], "prevention"=catcols[4], "suicidality"=catcols[5], "coping"=catcols[2], "irrelevant"=catcols[3])
+
+#rename main_category_predictions to predictions, but keep in mind about_suicide_n is also calculated based on model predictions (with the categories yes/no)
+dcatperday = dcatperday %>% 
+  rename(predictions = main_category_prediction)
+```
+
+# Summary
+
+I built the dataset with ML predictions of tweet categories by taking the predictions for unique tweets, and adding the number of retweets. This means all retweets are assigned to the same day, while they are in reality sometimes posted after. This is usually fine, but sometimes differs from the actual volume of tweets across days quite a bit. See year 2017 and 2018 (ML dataset in blue, brandwatch datasets with/without RTs in red and green).
+Our ML dataset, across the years 2013-2020, contains only about 50/60% of all tweets that brandwatch indicates in its full tweet volume. Many tweets were probably deleted, some may have included the keywords "RT/MT" which we excluded to exclude retweets. This percentage is higher from 2018 onwards, where we approximate the full tweet volume better.
+In 2019, we quite often have peaks that are much higher than the full tweet volume, I do not quite understand how that can happen.
+There are some very high peaks of the volume that we miss almost entirely (see peak in summer 2014, peak in april 2016, summer 2019)
+Apart from a few peaks, the years 2013-2016 are quite alright, we capture the overall up and down pattern, even if we have only a proportion of the tweets.
+The years 2017-2019 are a lot messier. 
+
+So overall, the question is: Is the correspondence between actual tweet volumes (brandwatch) and our ML dataset volume good enough for going ahead with the time series analysis? 
+
+# Dataset description
+
+We initially downloaded tweets from crimson hexagon on April 15th 2020, including all tweets containing a suicide-related term from January 1st 2013 to April 14th 2020. We excluded terms that clearly do not refer to suicide as the act of killing oneself. The query on Crimson Hexagon was: 
+
+    country:USA AND NOT engagementType:RETWEET AND language:en
+    AND (suicide OR suicidal OR "killed himself" OR "killed herself" OR "kill himself" OR "kill herself" OR "hung himself" OR "hung herself" OR "took his life" OR "took her life" OR "take his life" OR "take her life" OR "end his own life" OR "end her own life" OR "ended his own life" OR "ended her own life" OR "end his life" OR "end her life" OR "ended his life" OR "ended her life" OR "ends his life" OR "ends her life") 
+    AND NOT ("suicide squad" OR suicidechrist OR suicidegirl* OR suicideboy* OR suicideleopard OR suicidexjockey* OR "suicidal grind" OR bomber OR squad OR epstein OR Trump OR clinton* OR Hillary OR Biden OR sanders OR “political suicide”) 
+    AND NOT ("RT" OR "MT")
+
+We rehydrated these tweets a first time in April 2020, the resulting dataset included around 13.428 million tweets, of which only 9.584 million had unique ids. The machine learning models were trained on a random sample of manually annotated tweets from this sample. To get the number of retweets, we rehydrated a second time on March 14th 2021, which produced a sample of 8.892 million unique tweets. We then added the number of retweets to each tweet, to count the total number of times it was posted on Twitter. (Side note: the retweets are only on that date, but most retweets on Twitter happen with a couple of hours.)
+
+Predictions were made with the BERT base model, fine-tuned (more epochs, smaller learning rate, check with Hubert for details). 
+
+## Controls: Three different total volume datasets
+
+1. Our dataset: ML Predictions were done for each unique tweet, and then adding the number of retweets of each unique ID tweet per day. We made sure to only include unique tweets by excluding both the mention type retweet and tweets with the keywords RT (retweet) or MT (modified tweet), which were still frequently used in 2013. Caveat here: if retweets are spread out across multiple days, they will all be assigned to the day of the original tweet in this dataset. 
+2. Brandwatch full volume: all English tweets from the US that match our keywords used to collect the ML dataset. No filters for retweets or keywords RT/MT.
+3. Brandwatch volume filtered for the mention type retweet and the keywords RT/MT. This should be identical to our ML dataset, except for tweets that are still counted by Brandwatch, but for which the full text is no longer available (deleted tweets, or tweets from deleted accounts). 
+
+### Brandwatch volumes with and without filtering for retweets
+
+The full brandwatch volume, and the volume we used for ML training (RT filtered as type and keyword):
+
+![Brandwatch all tweets vs no RT](../figures/Suicide_tweets_US_weekly_vol_2013-2021_all_vs_no_RTs.pdf)
+Brandwatch volume filtered for mention type RT (blue) and in addition for the keywords RT and MT: This shows that retweets marked by these keywords were mainly and issue in 2013, and can be neglected if analyses focus on 2014 onward. 
+
+![Brandwatch filter plus keyword exclusion for RT](../figures/Suicide_tweets_US_weekly_vol_2013-2021_all_filtered_for_mentiontype_RT_vs_no_RTs.pdf)
+
+# Total tweet volume per day in ML prediction sample - compare with Brandwatch volumes
+
+```{r}
+dtotperday = dcatperday %>% 
+  group_by(date) %>% #only first line of 6 categories (ndaytotal is the same on each line)
+  slice(1) %>% 
+  ungroup() %>% 
+  #join with the brandwatch total volume
+  inner_join(db) %>% 
+  select(-c(predictions, ntweets)) %>% 
+  mutate(pr_ndaytotal_bw_alltweets = ndaytotal/bw_alltweets,
+         pr_ndaytotal_bw_noRTMT = ndaytotal/bw_noRTMT) %>%
+  pivot_longer(names_to = 'dataset', values_to = "ntweets", cols=c("ndaytotal", "bw_alltweets", "bw_noRTMT"))
+```
+
+Proportion of tweets from our full text tweet sample for which we made BERT predictions in the total tweet volume as indicated by Brandwatch: divide daily volume in our sample by daily brandwatch volume: 
+
+```{r}
+boxplot(dtotperday$pr_ndaytotal_bw_alltweets)
+# boxplot(dtotperday$pr_ndaytotal_bw_alltweets)
+```
+
+```{r}
+hist(dtotperday$pr_ndaytotal_bw_alltweets)
+```
+
+Mean and median
+```{r}
+mean(dtotperday$pr_ndaytotal_bw_alltweets)
+median(dtotperday$pr_ndaytotal_bw_alltweets)
+```
+
+Summary: there are some days on which our sample of full tweets plus retweets has more tweets than the brandwatch volume. Exploring possible reasons: 
+
+* Could that be because all retweets are assigned to the same day in our sample, and on rare occasions, a lot of retweets happen on the day after? Sometimes, there is a low percentage on the day before the percentage goes above 100%, check if that is consistently so.
+
+* It could also be that the date on which brandwatch separates daily volumes is European because I download from Europe, and the actual date of each tweet (as in our full text sample) has the actually correct day. So there would be a lag between our dataset and the Brandwatch dataset. 
+
+## Timeline across all years
+
+Ndaytotal is the ML predictions dataset volume per day. 
+
+```{r}
+ggplot((dtotperday), aes(x=date, y = ntweets, colour=dataset))+
+  geom_line(alpha=0.6)+theme_bw()+theme(legend.position=c(0.8,0.8))
+```
+
+There are 3 peaks above 200'000 in full brandwatch dataset
+
+## Timeline for each year separately
+
+It looks a bit like there is such a lag in the earlier years. In later years, the comparison gets messier, there are more tweets we dont have that are still counte on Brandwatch, and some tweets that are not counted on Brandwatch??
+
+```{r}
+ggplot(filter(dtotperday, date < as.Date("2014-01-01")), aes(x=date, y = ntweets, colour=dataset))+
+  geom_line()+theme_bw()+theme(legend.position=c(0.8,0.8))+
+  ylim(0,200000)
+ggplot(filter(dtotperday, date > as.Date("2014-01-01") & date<as.Date("2015-01-01")),  aes(x=date, y = ntweets, colour=dataset))+
+  geom_line()+theme_bw()+theme(legend.position=c(0.8,0.8))+
+  ylim(0,300000)+
+  ggtitle('different y scale!')
+ggplot(filter(dtotperday, date > as.Date("2015-01-01") & date<as.Date("2016-01-01")),  aes(x=date, y = ntweets, colour=dataset))+
+  geom_line()+theme_bw()+theme(legend.position=c(0.8,0.8))+
+  ylim(0,200000)
+ggplot(filter(dtotperday, date > as.Date("2016-01-01") & date<as.Date("2017-01-01")),  aes(x=date, y = ntweets, colour=dataset))+
+  geom_line()+theme_bw()+theme(legend.position=c(0.8,0.8))+
+  ylim(0,200000)
+ggplot(filter(dtotperday, date > as.Date("2017-01-01") & date<as.Date("2018-01-01")),  aes(x=date, y = ntweets, colour=dataset))+
+  geom_line()+theme_bw()+theme(legend.position=c(0.8,0.8))+
+  ylim(0,200000)
+ggplot(filter(dtotperday, date > as.Date("2018-01-01") & date<as.Date("2019-01-01")),  aes(x=date, y = ntweets, colour=dataset))+
+  geom_line()+theme_bw()+theme(legend.position=c(0.8,0.8))+
+  ggtitle('different y scale!')
+ggplot(filter(dtotperday, date > as.Date("2019-04-01")), aes(x=date, y = ntweets, colour=dataset))+
+  geom_line()+theme_bw()+theme(legend.position=c(0.8,0.8))+
+  ylim(0,200000)
+```
+
+
+## Does the difference in volumes change over time? 
+
+The difference between the ML dataset volumes and the all tweet brandwatch volume becomes less over time (here log values), which makes sense, given that we excluded tweets with RT and MT in the full text tweet sample for BERT predictions, but they are included in the brandwatch volume. Also, more tweets may have been deleted for years that are longer ago, because people delete their accounts etc. so they might still be counted on Brandwatch, but the full text is no longer available. The last years (mid 2018 to 2020) show that our method of adding the number of retweets to each tweet works, at least at a monthly resultion.  
+
+```{r}
+dtotpermonth = dtotperday %>% 
+  mutate(monthdate = floor_date(date, "month")) %>%
+  group_by(monthdate, dataset) %>% 
+  summarise(ntweets = sum(ntweets)) %>% 
+  filter(monthdate < as.Date('2020-04-01'))
+ggplot(dtotpermonth, aes(x=monthdate, y = log(ntweets), colour=dataset))+
+  geom_line(alpha=0.6)+theme_bw()
+```
+
+## How different are the total sample sizes? 
+
+Sometimes our ML volume is almost half the full volume (2013-2017), but it is better in 2018-2020. Sample sizes in million tweets. 
+
+```{r}
+dtotperyear = dtotperday %>%
+  group_by(year, dataset) %>% 
+  summarise(mio_tweets = sum(ntweets)/1000000) %>% 
+  pivot_wider(names_from=dataset, values_from = mio_tweets, )
+dtotperyear
+```
+
+## How much does the proportion between the full and ML dataset vary? 
+
+If it is constant, the difference is not a big issue. Most of the time it is fine, the question is just if the outliers are meaningful. Maybe this is constant enough, around 0.5 until 2018, then more. 
+
+```{r}
+dtotpermonth = dtotperday %>% 
+  mutate(week = floor_date(date, "week")) %>%
+  group_by(date) %>% slice(1) %>% #each proportion is repeated on 3 rows
+  group_by(week) %>% 
+    summarise(pr_ndaytotal_bw_alltweets = mean(pr_ndaytotal_bw_alltweets),
+              pr_ndaytotal_bw_noRTMT = mean(pr_ndaytotal_bw_noRTMT),) 
+
+ggplot(dtotpermonth, aes(x=week, y = pr_ndaytotal_bw_alltweets, group=week))+
+  geom_point()+ theme_bw()+
+  geom_hline(yintercept=1, colour="grey")+ggtitle("Proportion of ML dataset in Brandwatch full volume")
+ggplot(dtotpermonth, aes(x=week, y = pr_ndaytotal_bw_noRTMT, group=week))+
+  geom_point()+ theme_bw()+
+  geom_hline(yintercept=1, colour="grey")+ggtitle("Proportion of ML dataset in Brandwatch volume without RT/MT")
+```
