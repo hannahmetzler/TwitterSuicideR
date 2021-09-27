@@ -124,7 +124,6 @@ irr::kappa2(df[c("thomas4", "hannah4")])
 #    
 # #replace non unice characters with space
 #   notagree$contents <- iconv(notagree$contents, from = "UTF-8", to = "ASCII", sub = "")
-# #write.csv(file='../output/tweets_noagreement.csv', notagree[c("hannah4", "thomas4", "contents")])
 
 ```
 
