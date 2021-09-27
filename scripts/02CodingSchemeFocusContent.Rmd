@@ -1,0 +1,257 @@
+---
+title: "Coding Scheme with Focus, Content and Not-serious/Unclear Dimensions: Tweet Frequencies"
+author: "Hannah Metzler"
+date: "11/26/2020"
+output: 
+  pdf_document:
+    df_print: kable
+    keep_tex: true
+url_colour: blue
+always_allow_html: yes
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, message=FALSE, warning=FALSE)
+Sys.setlocale("LC_ALL", 'en_US.UTF-8')
+options(scipen=99)
+library(dplyr)
+library(stringr)
+library(irr)
+library(xfun)
+library(caret)
+library(forcats)
+library(RColorBrewer)
+```
+
+# Add 1000 randomly selected tweets to hand- and model-selected training set. Labels for focus/narrative and type of content.
+
+```{r}
+training <- read.csv('../tweet_training_set/training_posts20201102_2185tweets.tsv', sep='\t') %>%  #training sample according to table with 6 content types and 2 narratives
+  select(-txt_clean)
+rs <- read.csv('../tweet_training_set/1-1000tweets_basefrequency_categories_labelled.tsv', sep='\t') %>% #random sample of tweets coded according to table with content and narrative classification
+  select(-Order)
+#names(training); names(rs)
+totaltrain <- rbind(training, rs)
+```
+
+How many tweets per category (all small categories included) in all coded tweets? 
+```{r}
+as.data.frame(xtabs(~Category, data=totaltrain))
+#write.table(as.data.frame(xtabs(~Category, data=totaltrain)),'../output/tweets_per_category_trainingposts20201103.tsv', sep='\t', row.names=F)
+```
+
+- It looks like Coping1/3 and Suicidality1/3 will have to be combined, respectively. 
+- Life saved not enough for Machine learning. Maybe add it to news_coping and rename to news_positive?
+- Could we combine all news with personal stories, and just code news vs. not news in an additional column?
+
+
+Do all categories have the right focus coded?
+
+- Suicide_other can be all 3 narratives/foci
+- Off-topic are all neither of them 
+- Werther can rarely be about a suicide case and still focused on prevention, see 7 instances below
+
+```{r}
+as.data.frame(xtabs(~focus+Category, data=totaltrain))
+# #look at the example tweets
+# totaltrain %>% 
+#   filter(Category=="Werther" & focus == "2") %>% 
+#   select(Category, focus, Contents)
+```
+
+Which categories can be labelled as non-serious? Only suicide other or off-topic tweets. 
+
+```{r}
+as.data.frame(xtabs(~notserious_unclear+Category, data=totaltrain))
+```
+
+
+# Frequency of categories in a random sample of 1000 tweets
+
+How many tweets per category (all small categories included)? 
+```{r}
+as.data.frame(xtabs(~Category, data=rs))
+
+#define the order for factor levels
+ord_category <- c( "Suicidality1","Suicidality3","Coping1", "Coping3", "News_coping", "News_suicidality", "Bereaved_negative", "Bereaved_coping","Awareness", "Prevention",  "Werther", "Life_saved", "Suicide_other","Off-topic")
+
+coded = rs %>% 
+  mutate(Category = factor(Category, levels = ord_category, labels = ord_category)) %>% 
+  #combine all coping and suicidality categories into one
+  mutate(Combined = recode(Category, Coping1 = "Coping", Coping3 = "Coping", Suicidality1 = "Suicidality", Suicidality3 = "Suicidality", 
+                           News_coping = "Coping", News_suicidality = "Suicidality"))
+```
+
+Tweets per category. Total number of tweets n=`r sum(prop.comb$n,2)`. 
+
+Proportion of tweets per small category
+```{r}
+#proportion per category
+prop.cat <- as.data.frame(coded %>% 
+  group_by(Category) %>%
+  summarise (n = n()) %>%
+  mutate(freq = n / sum(n))) %>%
+  ungroup()  %>% 
+  mutate(Combined = recode(Category, Coping1 = "Coping", Coping3 = "Coping", Suicidality1 = "Suicidality", Suicidality3 = "Suicidality", 
+                           News_coping = "Coping", News_suicidality = "Suicidality"))
+prop.cat
+```
+
+Tweets per category if 1st and 3rd person perspective are combined for Coping and Suicidality, and news coping and news suicidality classes included as well. Total number of tweets n=`r sum(prop.comb$n,2)`.  
+```{r}
+#proportion with combined categories
+prop.comb <- as.data.frame(coded %>%
+  group_by(Combined) %>%
+  summarise (n = n()) %>%
+  mutate(freq = n / sum(n))) %>% 
+  ungroup()
+#write.table(prop.cat,'../output/tweets_per_category_basefrequency20201028.tsv', sep='\t', row.names=F)
+prop.comb
+```
+
+
+```{r, Figure Frequency in random sample combined categories}
+s=15
+plot.prop.comb <- ggplot(prop.comb, aes(x=Combined, y = freq, fill=Combined)) + #dataset and variables to plot
+  geom_bar(stat="identity")+
+  ggtitle("Frequency in random tweet sample")+
+  labs(y="Proportion", x="") + #axes and title labels
+    scale_fill_brewer(palette="Paired")+
+  theme_bw() +  
+  theme(axis.text.x = element_text(angle = 45, hjust=1), legend.position="none", text=element_text(size=s))
+
+plot.prop.comb
+#pdf('../figures/proportion_categories_random_sample.pdf', height=5, width=7); plot.prop.comb; plot.prop.coping.suicidality; dev.off()
+```
+
+Tweets in the suicidality and coping categories include the following subcategories:
+
+```{r, Figure Frequency in random sample subcategories}
+
+#Subcategories
+df <- filter(prop.cat, Combined=="Coping" | Combined=="Suicidality")
+plot.prop.coping.suicidality <- ggplot(df, aes(x=Category, y = freq, fill=Combined)) + #dataset and variables to plot
+  geom_bar(stat="identity")+
+  ggtitle("Subcategories Coping and Suicidality") +
+  labs(y="Proportion", x="") + #axes and title labels
+  scale_fill_brewer(palette="Paired")+
+  theme_bw() +  
+  theme(axis.text.x = element_text(angle = 45, hjust=1), legend.position="none", text=element_text(size=s))
+plot.prop.coping.suicidality
+
+
+
+#pdf('../figures/proportion_subcategories_copingsuicidal_random.pdf', height=5, width=7/10*6); plot.prop.coping.suicidality; dev.off()
+ 
+```
+```{r}
+prop.notserious <- as.data.frame(coded %>%
+  group_by(notserious_unclear) %>%
+  summarise (n = n()) %>%
+  mutate(freq = n / sum(n))) %>% 
+  ungroup()
+```
+Out of the off-topic and suicide_other tweets, about `r round(prop.notserious$freq[2], 2)*100`% are jokes, sarcastic, metaphors or 
+
+# Frequency in training sample
+
+```{r}
+coded = totaltrain %>% 
+  filter(!Category=="") %>% #filter empty (not labeled) tweets 
+  mutate(Category = factor(Category, levels = ord_category, labels = ord_category)) %>% 
+  mutate(Combined = recode(Category, Coping1 = "Coping", Coping3 = "Coping", Suicidality1 = "Suicidality", Suicidality3 = "Suicidality", 
+                           News_coping = "Coping", News_suicidality = "Suicidality", Life_saved= "Suicide_other", Bereaved_negative = "Suicide_other", Bereaved_coping = "Suicide_other")) %>% 
+  mutate(Contents = as.character(Contents))
+
+# proportion per category
+prop.cat <- as.data.frame(coded %>% 
+  group_by(Category) %>%
+  summarise (n = n()) %>%
+  mutate(freq = n / sum(n))) %>%
+  ungroup()  %>% 
+  mutate(Combined = recode(Category, Coping1 = "Coping", Coping3 = "Coping", Suicidality1 = "Suicidality", Suicidality3 = "Suicidality", 
+                           News_coping = "Coping", News_suicidality = "Suicidality"))
+
+#proportion with combined categories
+prop.comb <- as.data.frame(coded %>%
+  group_by(Combined) %>%
+  summarise (n = n()) %>%
+  mutate(freq = n / sum(n))) %>% 
+  ungroup()
+```
+
+Tweets per category. Total number of tweets n=`r sum(prop.comb$n,2)`. 
+
+```{r}
+prop.cat
+```
+
+
+Tweets per category if 1st and 3rd person perspective are combined for Coping and Suicidality. Total number of tweets n=`r sum(prop.comb$n,2)`.  
+```{r}
+prop.comb
+```
+
+```{r, Figure Frequency in training sample}
+s=15
+plot.n.comb <- ggplot(prop.cat, aes(x=Combined, y = n, fill=Combined)) + #dataset and variables to plot
+  geom_bar(stat="identity")+
+  ggtitle(paste("Frequency in training sample with n=", nrow(totaltrain), sep=""))+
+  labs(y="Number of tweets", x="Category") + #axes and title labels
+  scale_fill_brewer(palette="Paired")+
+  theme_bw() +  
+  theme(axis.text.x = element_text(angle = 45, hjust=1), legend.position="none", text=element_text(size=s))
+
+plot.n.comb
+
+s=14
+#Subcategories
+df <- filter(prop.cat, Combined=="Coping" | Combined=="Suicidality")
+plot.n.coping.suicidality <- ggplot(df, aes(x=Category, y = n, fill=Combined)) + #dataset and variables to plot
+  geom_bar(stat="identity")+
+  ggtitle(paste("Subcategories Coping & Suicidality in training sample with n=", nrow(totaltrain), sep="")) +
+  labs(y="Number of tweets", x="Category") + #axes and title labels
+  scale_fill_brewer(palette="Paired")+
+  theme_bw() +  
+  theme(axis.text.x = element_text(angle = 45, hjust=1), legend.position="none", text=element_text(size=s))
+plot.n.coping.suicidality
+
+
+#pdf('../figures/n_per_category_training_sample.pdf', height=5, width=7); plot.n.comb; plot.n.coping.suicidality; dev.off()
+#pdf('../figures/n_per_subcategory_copingsuicidal_training.pdf', height=5, width=7/10*6); plot.n.coping.suicidality; dev.off()
+ 
+```
+
+Which categories in the training sample have less than 150 tweets? We need to combined these into larger categories, or code them as Suicide_other for training the models. 
+
+```{r, Figure small categories}
+
+s=15
+plot.smalln <- ggplot(filter(prop.cat, n < 150), aes(x=Category, y = n, fill=Combined)) + #dataset and variables to plot
+  geom_bar(stat="identity")+
+  ggtitle("Small categories training sample")+
+  labs(y="Number of tweets", x="Category") + #axes and title labels
+  scale_fill_brewer(palette="Paired")+
+  theme_bw() +  
+  theme(axis.text.x = element_text(angle = 45, hjust=1), legend.position="none", text=element_text(size=s))
+
+plot.smalln
+
+#pdf('../figures/small_categories_training_sample.pdf', height=5, width=7); plot.smalln; dev.off()
+
+```
+
+
+# Save the complete training set: training_posts20201105_3181tweets.tsv
+
+```{r}
+# write this dataframe to new training sample file. Very few tweets have \n new line characters that split the tweet into 2 cells in the ouput.tsv file - delete these characters first
+# example tweets
+str_subset(coded$Contents, "It's a cry for help that went unanswered.") # "in over half of them", "It's a cry for help that went unanswered."
+# problem with this: some tweets have new lines, they need to be deleted before I can write a tab seperated file, otherwise the tweet text gets split into news cells and lines at these points
+coded$Contents = str_replace_all(coded$Contents, "\n","")
+#write.table(coded,'../tweet_training_set/training_posts20201105_3181tweets.tsv', sep = "\t", row.names=F) 
+```
+  
+
+
