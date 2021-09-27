@@ -18,6 +18,7 @@ library(dplyr)
 library(stringr)
 library(tidyr)
 library(irr)
+library(janitor) #for viewing duplicates
 # library(xfun)
 library(caret) #confusionMatrix
 # library(forcats)
@@ -30,41 +31,64 @@ Codes by Hannah and Thomas and BERT used for the final results. Coding into the 
 
 Goal was to have at least 100 true instances for each class. 
 
-```{r, preprocess data}
+```{r, preprocess data BERT and Hannah}
 #Load and clean the data
 
 #BERT predictions
-db4 <- read.csv('../reliability_datasets/round4_150x5_suicide_withpredictions_BERT_not_finetuned.csv', stringsAsFactors = F, sep = '\t') %>% 
+db4 <- read.csv('../reliability_datasets/round4_150x5_suicide_withpredictions_BERT_not_finetuned.csv', stringsAsFactors = F, sep = '\t',  colClasses = "character") %>% 
   mutate(predictionBERT1 = as.factor(predictionBERT1),
-          id = as.character(id)) %>% 
-  rename(category.BERT = predictionBERT1)
+         id = as.character(id)) %>% 
+  rename(main_category.BERT = predictionBERT1)
 #Hannah's labels
-dh4 <- read.csv('../reliability_datasets/round4_150x5_suicide_Hannah_complete_IDsrepaired.csv', stringsAsFactors = T)  %>% 
+dh4 <- read.csv('../reliability_datasets/round4_150x5_suicide_Hannah_complete_IDsrepaired.csv', stringsAsFactors = T,  colClasses = "character")  %>% 
   #delete text columns, messed up by excel, use text from BERT predictions dataset. #delete text columns split into multiple columns in Hannah file
   select(-c(text, X, X.1, X.2, X.3, X.4, X.5, X.6)) %>% 
   #transform to factor
-    mutate(notserious_unclear = as.factor(notserious_unclear), 
-           focus = as.factor(focus), 
-           type = as.factor(type)) %>% 
+  mutate(notserious_unclear = as.factor(notserious_unclear), 
+         focus = as.factor(focus), 
+         type = as.factor(type), 
+         category = as.factor(category),
+         category2 = as.factor(category2)) %>%
   mutate(time = as.character(time), 
          id = as.character(id)) %>% 
-   mutate(main_category = recode(category, news_suicidality = "irrelevant", news_coping = "irrelevant", bereaved_negative = "irrelevant", bereaved_coping = "irrelevant", 
+  mutate(main_category = recode(category, news_suicidality = "irrelevant", news_coping = "irrelevant", bereaved_negative = "irrelevant", bereaved_coping = "irrelevant", 
                                 life_saved = "irrelevant", suicide_other = "irrelevant", "off-topic" = "irrelevant", 
                                 coping1 = "coping", coping3 = "coping", suicidality1 = "suicidality", suicidality3 = "suicidality"))
+```
+
+
+```{r, preprocess data Thomas}
 #Thomas' labels
-dt4 <- read.csv('../reliability_datasets/round4_150x5_suicide_Thomas_complete_IDsrepaired.csv', stringsAsFactors = F) %>%
+dt4 <- read.csv('../reliability_datasets/round4_150x5_suicide_Thomas_complete_IDsrepaired.csv', stringsAsFactors = F, colClasses = "character") %>%
   select(-X1.problem.1) %>% 
   #delete text columns, messed up by excel, use text from BERT predictions dataset. #delete text columns split into multiple columns in Hannah file
   select(-c(text, text.1, X, X.1, X.2, X.3, X.4, X.5, X.6)) %>% 
-  rename(thomas_notes = "any.other.category.", 
+  rename(notes.thomas = "any.other.category.", 
          focus0 = "Focus.0..neither.problem.solution", 
          focus1 = "X1.problem", 
          focus2 = "X2.solution", 
          notserious_unclear1 = "notserious_unclear..1..includes.suicide_other.and.off.topic") %>% 
-  #transform logical vectors to characters
+    #transform logical vectors to characters
   mutate(news.coping  = as.character(news.coping), 
-         id = as.character(id))%>% 
-  #rename x in all category columns to the name of the category, so they can all be merged into one column next
+         id = as.character(id))  %>% 
+
+
+# #check for empty labels in Thomas' dataset, first for the columns belonging to the variable category
+# allcats = unite(dt4, allcats, Suicidality.1:off.topic, sep="_")$allcats
+# allfocus = unite(dt4, allfocus, focus0:focus2, sep="_")$allfocus
+# allnotserious = unite(dt4, allnotserious, notserious_unclear1:X0.serious, sep="_")$allnotserious
+# #now label rows that do not contain an X as false
+# dt4$emptycategory = !str_detect(allcats, "x")
+# dt4$emptyfocus = !str_detect(allfocus, "x")
+# dt4$emptynotserious = !str_detect(allnotserious, "x")
+# #replace these empty categories with NaN
+# 
+# #empty labels saved in this dataset, it was mostly focus labels missing, completed
+# d = dt4 %>% filter(emptycategory == TRUE | emptyfocus == TRUE | emptynotserious == TRUE)
+# # write.csv2(file="../output/missinglabels_reliability_round4_Thomas.csv",d, row.names=F)
+
+
+#rename x in all category columns to the name of the category, so they can all be merged into one column next
   mutate(Suicidality.1 = recode(Suicidality.1, x="suicidality1"), 
          Suicidality.3 = recode(Suicidality.3, x="suicidality3"), 
          Coping.1  = recode(Coping.1, x = "coping1"),
@@ -85,46 +109,78 @@ dt4 <- read.csv('../reliability_datasets/round4_150x5_suicide_Thomas_complete_ID
                              "Coping.1", "Coping.3", "bereaved.neg", "bereaved.pos", "werther", 
                              "live.saved", "awareness", "prevention", "news.suicidality", 
                              "news.coping", "sui.other", "off.topic"), names_to="variable", values_to="category") %>% 
-  #filter all the empty lines (since only one variable has an entry (an "x))
+  mutate(category = as.factor(category)) %>% 
+
+# #this issue was fixed by completing the empty labels in Thomas' dataset
+# # # we now have 570*14 rows, each row repeated per category. Keep only the row with an entry
+# # # there should be 13 empty ones per tweet, ie. 750*13=  9750, there are 9752 if we count NAs (all lines for news.coping) and empty "". i.e. 2 more empty ones than there should be. 
+# xtabs(~category, dt4)
+# sum(is.na(dt4$category)) #750 NAs, 
+# dt4[is.na(dt4$category), ]#all from the category news.coping. i.e. no tweet for news coping
+
   filter(category != "") %>% 
-  select(-variable) %>%
-  #repeat the same for all focus variables: recode the cells to column name
+  select(-variable) %>% 
+
+#repeat the same for the 3 focus variables: recode the cells to column name
   mutate(focus0 = recode(focus0, x="0"),
          focus1= recode(focus1, x= "1"), 
-         focus2= recode(focus2,x = "2")) %>% 
+         focus2= recode(focus2, x = "2")) %>% 
   #merge all into 1 column  
   tidyr::pivot_longer(cols=c("focus0", "focus1", "focus2"), names_to="variable", values_to="focus") %>% 
   filter(focus != "") %>% 
   select(-variable) %>% 
-  #repeat the same for serious/unclear: recode the cells to column name
+# #here we had 2 duplicates, because Thomas' file contained duplicate focus labels for 2 Tweets: 994362285744443392, 1173390237801820161. 1 label deleted for each tweet. 
+# janitor::get_dupes(dt4, id)
+
+#repeat the same for serious/unclear: recode the cells to column name
   mutate(notserious_unclear1 = recode(notserious_unclear1, x="1"),
          X0.serious= recode(X0.serious, x= "0")) %>% 
   #merge all into 1 column
   tidyr::pivot_longer(cols=c("notserious_unclear1", "X0.serious"), names_to="variable", values_to="notserious_unclear") %>% 
   select(-variable) %>% 
   filter(notserious_unclear != "") %>% 
+
   #format variables
   mutate(notserious_unclear = as.factor(notserious_unclear), 
            focus = as.factor(focus), 
          category = as.factor(category)) %>% 
   mutate(time = as.character(time), 
          id = as.character(id)) %>% 
+   #create main category variable
   mutate(main_category = as.factor(recode(category, news_suicidality = "irrelevant", news_coping = "irrelevant", bereaved_negative = "irrelevant", bereaved_coping = "irrelevant", 
                                 life_saved = "irrelevant", suicide_other = "irrelevant", "off-topic" = "irrelevant", 
-                                coping1 = "coping", coping3 = "coping", suicidality1 = "suicidality", suicidality3 = "suicidality")))
+                                coping1 = "coping", coping3 = "coping", suicidality1 = "suicidality", suicidality3 = "suicidality"))) %>% 
+  droplevels() #delete the empty levels
+# # #here we had 2 duplicates, because Thomas' file contained duplicate seriousvsnot labels for 1 tweet.613152024935460864. 1 was deleted. 
+# janitor::get_dupes(dt4, id)
+```
 
+
+```{r, join dataframes}
 #join Hannah and BERT
 d4 = db4 %>% 
   inner_join(dh4, suffix = c(".bert", ".hannah"), by = "id") %>% 
-  left_join(dt4, suffix = c(".hannah", ".thomas"), by = "id")
+  inner_join(dt4, suffix = c(".hannah", ".thomas"), by = "id") %>% 
+  #keep only time column from Bert dataset
+  select(-c(time, time.hannah)) %>% 
+  rename(notes.hannah = ambiguous, 
+         type.hannah = type, 
+         time = time.bert)
 #order columns
-d4 = d4[,order(colnames(d4))]
+d4 = d4[, c("id", "time", "text", 
+            "main_category.BERT", "category.hannah", "category.thomas", 
+            "main_category.hannah",  "main_category.thomas", 
+            "category2", "focus.hannah", "focus.thomas",   "type.hannah",
+            "notserious_unclear.hannah", "notserious_unclear.thomas", 
+            "notes.hannah", "notes.thomas")]
 ```
+# How many true labels do we have per category? 
 
 ```{r}
-#check which empty cases there are in Thomas' labels
-
+xtabs(~main_category, dh4)
 ```
+
+We need 21 more awareness tweets to have 100 per category. 
 
 
 # Hannah and BERT
@@ -136,13 +192,23 @@ d4r = d4 %>%  #data round 4 relevant categories only
   filter(main_category.thomas != "irrelevant") %>% 
   droplevels()
 
-caret::confusionMatrix(d4r$category.BERT, d4r$main_category.hannah)
+caret::confusionMatrix(d4r$main_category.BERT, d4r$main_category.hannah)
 ```
+
+## Analysis of confusion matrix: 
+
+- model mistakes 11 out of 110 coping tweets as suicidality. Are these the past suicidality tweets?
+
+```{r}
+d4 %>% 
+  filter(main_category.hannah == "coping" & main_category.bert)
+```
+
 
 # Thomas and BERT
 
 ```{r}
-confusionMatrix(d4r$category.BERT, d4r$main_category.thomas)
+confusionMatrix(d4r$main_category.BERT, d4r$main_category.thomas)
 ```
 
 # Human inter-coder reliability
@@ -151,7 +217,7 @@ confusionMatrix(d4r$category.BERT, d4r$main_category.thomas)
 
 ```{r}
 confusionMatrix(d4r$main_category.hannah, d4r$main_category.thomas)
-```
+  ```
 
 ## 6 main categories (including irrelevant)
 ```{r}
