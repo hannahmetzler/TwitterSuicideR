@@ -66,6 +66,25 @@ dcatperday %>%
   #2020 is not a full year 
   filter(year!="2020")
 ```
+## Total number per category
+
+```{r}
+prop.table(xtabs(~ predictions, dcatperday))
+dcat = dcatperday %>% 
+  group_by(predictions) %>% 
+  summarise(ntweets = sum(ntweets)) %>% 
+  ungroup()
+
+#plot per year
+ggplot(data=dcatperyear, aes(x=year, y=ntweets))+
+  geom_point(aes(colour = predictions))+ geom_line(aes(colour = predictions))+
+  geom_point(aes(x=year, y=ntotal))+  geom_line(aes(x=year, y=ntotal))+
+  #show total tweets with suicide terms per year (sum of all categories)
+  # geom_line(data=dtotperyear, aes(x=year, y=ndaytotal))+
+  theme_bw()+
+  scale_colour_manual(values=mycols)+
+  scale_x_continuous(n.breaks=7)
+```
 
 ## Total number of tweets per category by year
 
@@ -83,7 +102,8 @@ dcatperyear = dcatperday %>%
   filter(year!="2020") %>% 
   #million tweets
   mutate(mio_tweets = ntweets/1000000,
-         mio_total = ntotal/1000000)
+         mio_total = ntotal/1000000) %>% 
+  ungroup()
 
 #plot per year
 ggplot(data=dcatperyear, aes(x=year, y=ntweets))+

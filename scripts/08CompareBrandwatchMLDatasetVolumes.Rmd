@@ -16,7 +16,7 @@ Sys.setlocale("LC_ALL", 'en_US.UTF-8')
 options(scipen=99)
 library(dplyr)
 library(ggplot2)
-library(viridis)
+library(viridis) #colors
 library(tidyr)
 library(lubridate)
 #load data (origin: scripts folder, where this .Rmd file is)

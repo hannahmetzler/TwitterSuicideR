@@ -21,7 +21,7 @@ library(irr)
 library(janitor) #for viewing duplicates
 # library(xfun)
 library(caret) #confusionMatrix
-# library(forcats)
+# library(forcats) #for factors, part of tidyverse
 # library(RColorBrewer)
 ```
 
@@ -35,10 +35,11 @@ Goal was to have at least 100 true instances for each class.
 #Load and clean the data
 
 #BERT predictions
-db4 <- read.csv('../reliability_datasets/round4_150x5_suicide_withpredictions_BERT_not_finetuned.csv', stringsAsFactors = F, sep = '\t',  colClasses = "character") %>% 
-  mutate(predictionBERT1 = as.factor(predictionBERT1),
+db4 <- read.csv('../reliability_datasets/round4_150x5_suicide_withpredictions_BERT_finetuned.csv', stringsAsFactors = F, sep = '\t',  colClasses = "character") %>% 
+  mutate(BERT_best_new = as.factor(BERT_best_new),
          id = as.character(id)) %>% 
-  rename(main_category.BERT = predictionBERT1)
+  rename(main_category.BERT = BERT_best_new) %>% 
+    select(-predictionBERT1) #these are predictions by a previous, less good version of our model
 #Hannah's labels
 dh4 <- read.csv('../reliability_datasets/round4_150x5_suicide_Hannah_complete_IDsrepaired.csv', stringsAsFactors = T,  colClasses = "character")  %>% 
   #delete text columns, messed up by excel, use text from BERT predictions dataset. #delete text columns split into multiple columns in Hannah file
@@ -178,14 +179,18 @@ d4 = d4[, c("id", "time", "text",
 
 # How many true labels do we have per category? 
 
+Hannah's labels: 
 ```{r}
 xtabs(~main_category, dh4)
+  
+```
+
+Thomas' labels: 
+```{r}
 xtabs(~main_category, dt4)
 ```
 
-We need 21 more awareness tweets to have 100 per category. 
-
-```{r,data for labelling more tweets}
+```{r, data for labelling more tweets}
 #join missing labels and duplicate labels with new awareness tweet candidates
 missing_ids = read.csv("../output/empty_labels_reliability_round4_Thomas.csv", colClasses = "character")$id
 dupe_ids = c("994362285744443392", "1173390237801820161", "613152024935460864")
