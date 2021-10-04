@@ -19,10 +19,7 @@ library(stringr)
 library(tidyr)
 library(irr)
 library(janitor) #for viewing duplicates
-# library(xfun)
 library(caret) #confusionMatrix
-# library(forcats) #for factors, part of tidyverse
-# library(RColorBrewer)
 ```
 
 # Final reliability round 4: 150 predicted with BERT for 5 main categories of interest
@@ -37,9 +34,10 @@ Goal was to have at least 100 true instances for each class.
 #BERT predictions
 db4 <- read.csv('../reliability_datasets/round4_150x5_suicide_withpredictions_BERT_finetuned.csv', stringsAsFactors = F, sep = '\t',  colClasses = "character") %>% 
   mutate(BERT_best_new = as.factor(BERT_best_new),
+         predictionBERT1 = as.factor(predictionBERT1),
          id = as.character(id)) %>% 
-  rename(main_category.BERT = BERT_best_new) %>% 
-    select(-predictionBERT1) #these are predictions by a previous, less good version of our model
+  rename(main_category.BERT = BERT_best_new)
+# select(-predictionBERT1) #these are predictions by a previous, less good version of our model
 #Hannah's labels
 dh4 <- read.csv('../reliability_datasets/round4_150x5_suicide_Hannah_complete_IDsrepaired.csv', stringsAsFactors = T,  colClasses = "character")  %>% 
   #delete text columns, messed up by excel, use text from BERT predictions dataset. #delete text columns split into multiple columns in Hannah file
@@ -60,7 +58,7 @@ dh4 <- read.csv('../reliability_datasets/round4_150x5_suicide_Hannah_complete_ID
 
 ```{r, preprocess data Thomas}
 #Thomas' labels
-dt4 <- read.csv('../reliability_datasets/round4_150x5_suicide_Thomas_complete_IDsrepaired.csv', stringsAsFactors = F, colClasses = "character") %>%
+dt4 <- read.csv('../reliability_datasets/round4_150x5_suicide_Thomas_complete_IDsrepaired.csv', stringsAsFactors = F, sep = '\t',  colClasses = "character") %>% 
   select(-X1.problem.1) %>% 
   #delete text columns, messed up by excel, use text from BERT predictions dataset. #delete text columns split into multiple columns in Hannah file
   select(-c(text, text.1, X, X.1, X.2, X.3, X.4, X.5, X.6)) %>% 
@@ -166,18 +164,42 @@ d4 = db4 %>%
   select(-c(time, time.hannah)) %>% 
   rename(notes.hannah = ambiguous, 
          type.hannah = type, 
-         time = time.bert)
+         time = time.bert, 
+         category2.hannah = category2) %>% 
+  mutate(category2.hannah = na_if(category2.hannah,""))
 #order columns
 d4 = d4[, c("id", "time", "text", 
-            "main_category.BERT", "category.hannah", "category.thomas", 
+            "main_category.BERT", "predictionBERT1", "category.hannah", "category.thomas", 
             "main_category.hannah",  "main_category.thomas", 
-            "category2", "focus.hannah", "focus.thomas",   "type.hannah",
+            "category2.hannah", "focus.hannah", "focus.thomas",   "type.hannah",
             "notserious_unclear.hannah", "notserious_unclear.thomas", 
             "notes.hannah", "notes.thomas")]
+
+#order factor levels of main category
+#order of categories for plots
+ord_mcategory= c( "suicidality", "coping", "awareness", "prevention", "werther", "irrelevant")
+d4 = d4 %>% 
+  mutate(main_category.hannah = factor(main_category.hannah, levels = ord_mcategory, labels = ord_mcategory), 
+         main_category.thomas = factor(main_category.thomas, levels = ord_mcategory, labels = ord_mcategory), 
+         main_category.BERT = factor(main_category.BERT, levels = ord_mcategory, labels = ord_mcategory))
+db4 = db4 %>% 
+  mutate(main_category.BERT = factor(main_category.BERT, levels = ord_mcategory, labels = ord_mcategory))
+dh4 = dh4 %>% 
+  mutate(main_category = factor(main_category, levels = ord_mcategory, labels = ord_mcategory))
+dt4 = dt4 %>% 
+  mutate(main_category = factor(main_category, levels = ord_mcategory, labels = ord_mcategory))
+
 ```
 
 
 # How many true labels do we have per category? 
+
+Bert's labels: 
+
+```{r}
+xtabs(~main_category.BERT, db4)
+  
+```
 
 Hannah's labels: 
 ```{r}
@@ -190,7 +212,7 @@ Thomas' labels:
 xtabs(~main_category, dt4)
 ```
 
-```{r, data for labelling more tweets}
+```{r, missing data}
 #join missing labels and duplicate labels with new awareness tweet candidates
 missing_ids = read.csv("../output/empty_labels_reliability_round4_Thomas.csv", colClasses = "character")$id
 dupe_ids = c("994362285744443392", "1173390237801820161", "613152024935460864")
@@ -209,9 +231,23 @@ write.table(file="../output/labels_thomas_missing_duplicates.tsv", d, sep="\t", 
 d4r = d4 %>%  #data round 4 relevant categories only
   filter(main_category.hannah != "irrelevant") %>% 
   filter(main_category.thomas != "irrelevant") %>% 
+  filter(main_category.BERT != "irrelevant") %>%
   droplevels()
+```
+
+## 6 categories (including irrelevant)
+
+```{r}
+caret::confusionMatrix(d4$main_category.BERT, d4$main_category.hannah)
+```
+
+##  5 categories with new finetuned BERT model
+
+```{r}
 
 caret::confusionMatrix(d4r$main_category.BERT, d4r$main_category.hannah)
+# #for 5 categoriew with previous BERT model, not finetuned
+# caret::confusionMatrix(d4r$predictionBERT1, d4r$main_category.hannah)
 ```
 
 ## Analysis of confusion matrix: 
@@ -226,24 +262,30 @@ d4 %>%
 
 # Thomas and BERT
 
+6 classes (including irrelevant)
+```{r}
+confusionMatrix(d4$main_category.BERT, d4$main_category.thomas)
+```
+
+5 classes (excluding irrelevant)
 ```{r}
 confusionMatrix(d4r$main_category.BERT, d4r$main_category.thomas)
 ```
 
+
 # Human inter-coder reliability
+
+## 6 main categories (including irrelevant)
+```{r}
+confusionMatrix(d4$main_category.hannah, d4$main_category.thomas)
+```
 
 ##  5 categories of interest
 
 ```{r}
 confusionMatrix(d4r$main_category.hannah, d4r$main_category.thomas)
-  ```
+```
 
-## 6 main categories (including irrelevant)
-```{r}
-#confusion matrix
-confusionMatrix(d4$main_category.hannah, d4$main_category.thomas)
-```
-```
 
 ## 12 categories
 
@@ -252,4 +294,20 @@ irr::kappa2(d4[c("category.hannah", "category.thomas")])
 ```
 
 
+# Summarize results for paper Table 4
+
+```{r}
+byclass = data.frame(
+  pair = c(rep("Coder 1 - BERT", 3), rep("Coder 2 - BERT", 3), rep("Coder 1 - Coder 2", 3)),
+  rbind(
+    round(t(caret::confusionMatrix(d4$main_category.BERT, d4$main_category.hannah)$byClass[,c("Precision", "Recall", "F1")]),2),
+    round(t(caret::confusionMatrix(d4$main_category.BERT, d4$main_category.thomas)$byClass[,c("Precision", "Recall", "F1")]),2),
+    round(t(caret::confusionMatrix(d4$main_category.hannah, d4$main_category.thomas)$byClass[,c("Precision", "Recall", "F1")]),2)
+  )
+)
+#order by metric
+byclass = byclass[ order((row.names(byclass))), ]
+
+# write.csv(file = "../output/inter-rater-reliability.csv", byclass)
+```
 
