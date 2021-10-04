@@ -30,9 +30,14 @@ load("../data_tweet_volumes/Suicide_tweets_daily_volume_per_maincategory.R")
 catcols = viridis(6)
 mycols = c("awareness"= catcols[1], "werther"=catcols[6], "prevention"=catcols[4], "suicidality"=catcols[5], "coping"=catcols[2], "irrelevant"=catcols[3])
 
+#order of categories for plots
+ord_mcategory= c( "suicidality", "coping", "awareness", "prevention", "werther", "irrelevant")
+
 #rename main_category_predictions to predictions, but keep in mind about_suicide_n is also calculated based on model predictions (with the categories yes/no)
 dcatperday = dcatperday %>% 
-  rename(predictions = main_category_prediction)
+  rename(prediction = main_category_prediction) %>% 
+  #category order
+  mutate(prediction = factor(prediction, levels = ord_mcategory, labels = ord_mcategory))
 ```
 
 # Dataset description
@@ -69,21 +74,18 @@ dcatperday %>%
 ## Total number per category
 
 ```{r}
-prop.table(xtabs(~ predictions, dcatperday))
-dcat = dcatperday %>% 
-  group_by(predictions) %>% 
-  summarise(ntweets = sum(ntweets)) %>% 
-  ungroup()
-
-#plot per year
-ggplot(data=dcatperyear, aes(x=year, y=ntweets))+
-  geom_point(aes(colour = predictions))+ geom_line(aes(colour = predictions))+
-  geom_point(aes(x=year, y=ntotal))+  geom_line(aes(x=year, y=ntotal))+
-  #show total tweets with suicide terms per year (sum of all categories)
-  # geom_line(data=dtotperyear, aes(x=year, y=ndaytotal))+
-  theme_bw()+
-  scale_colour_manual(values=mycols)+
-  scale_x_continuous(n.breaks=7)
+as.data.frame(dcatperday %>%
+                group_by(prediction) %>%
+                summarise (n = sum(ntweets)) %>%
+                mutate(freq = round(n/ sum(n)*100,2)))
+#plot 
+ggplot(prop.pred, aes(x=prediction, y = freq, fill=prediction)) + #dataset and variables to plot
+  geom_bar(stat="identity")+
+  ggtitle("Tweets per predicted category in full 2013-2020 sample")+
+  labs(y="Proportion", x="") + #axes and title labels
+  scale_fill_manual(values=c("#332288", "#88CCEE", "#44AA99", "#117733", '#999933', '#DDCC77', '#CC6677', "#882255", "#332288", "#88CCEE", "#44AA99", "#AA4499", "#999999",  "#444444"))+
+  theme_bw() +  
+  theme(axis.text.x = element_text(angle = 45, hjust=1), legend.position="none", text=element_text(size=s))
 ```
 
 ## Total number of tweets per category by year
@@ -93,7 +95,7 @@ ggplot(data=dcatperyear, aes(x=year, y=ntweets))+
 
 ```{r}
 dcatperyear = dcatperday %>% 
-  group_by(year, predictions) %>% 
+  group_by(year, prediction) %>% 
   summarise(ntweets = sum(ntweets), 
             pr = sum(ntweets)/sum(ndaytotal)) %>% 
   group_by(year) %>% 
@@ -107,7 +109,7 @@ dcatperyear = dcatperday %>%
 
 #plot per year
 ggplot(data=dcatperyear, aes(x=year, y=ntweets))+
-  geom_point(aes(colour = predictions))+ geom_line(aes(colour = predictions))+
+  geom_point(aes(colour = prediction))+ geom_line(aes(colour = prediction))+
   geom_point(aes(x=year, y=ntotal))+  geom_line(aes(x=year, y=ntotal))+
   #show total tweets with suicide terms per year (sum of all categories)
   # geom_line(data=dtotperyear, aes(x=year, y=ndaytotal))+
@@ -117,7 +119,7 @@ ggplot(data=dcatperyear, aes(x=year, y=ntweets))+
 ```
 
 ```{r}
-ggplot(data=filter(dcatperyear, predictions!="irrelevant"), aes(x=year, y=mio_tweets, colour = predictions))+
+ggplot(data=filter(dcatperyear, prediction!="irrelevant"), aes(x=year, y=mio_tweets, colour = prediction))+
   geom_point()+ geom_line()+
   theme_bw()+
   scale_colour_manual(values=mycols)+
@@ -134,7 +136,7 @@ The percentage of tweets per category decreased for irrelevant, and increased fo
 ```{r}
 #plot per year
 ggplot(data=dcatperyear, aes(x=year, y=pr))+
-  geom_point(aes(colour = predictions))+ geom_line(aes(colour = predictions))+
+  geom_point(aes(colour = prediction))+ geom_line(aes(colour = prediction))+
   theme_bw()+
   scale_colour_manual(values=mycols)+
   scale_x_continuous(n.breaks=7)+ggtitle("Percentage of tweets per category in total number of tweets")
@@ -164,13 +166,13 @@ dcatperday %>%
 ```{r}
 dcatpermonth = dcatperday %>% 
   filter(date < as.Date("2020-04-01")) %>% #no full month of data
-  group_by(month, predictions) %>% 
+  group_by(month, prediction) %>% 
   summarise(ntweets = sum(ntweets)) %>% 
   #thousand tweets
   mutate(thousand_tweets = ntweets/1000) %>% ungroup()
 #plot per month
-ggplot(data=dcatpermonth, aes(x=month, y=ntweets, colour = predictions))+
-  geom_point()+ geom_line(aes(group=predictions))+
+ggplot(data=dcatpermonth, aes(x=month, y=ntweets, colour = prediction))+
+  geom_point()+ geom_line(aes(group=prediction))+
   theme_bw()+
   scale_colour_manual(values=mycols)
 
@@ -186,18 +188,18 @@ ggplot(data=dcatpermonth, aes(x=month, y=ntweets, colour = predictions))+
 #monthly timeseries
 dtsmonthly = dcatperday %>% 
   #filter(date < as.Date("2020-04-01")) %>% #no full month of data
-  group_by(year, month, predictions) %>% 
+  group_by(year, month, prediction) %>% 
   summarise(ntweets = sum(ntweets)) %>% 
   #thousand tweets
   mutate(thousand_tweets = ntweets/1000) %>% ungroup() %>% 
 #add median per month 
-  group_by(month, predictions) %>% 
+  group_by(month, prediction) %>% 
   mutate(ntweets_median = median(ntweets))
 
 #plot per month
 ggplot(data=dtsmonthly)+
-  geom_point(aes(x=month, y=ntweets, colour = predictions))+ 
-  geom_line(aes(x=month, y=ntweets_median, group=predictions, colour=predictions))+
+  geom_point(aes(x=month, y=ntweets, colour = prediction))+ 
+  geom_line(aes(x=month, y=ntweets_median, group=prediction, colour=prediction))+
   theme_bw()+
   scale_colour_manual(values=mycols)+
   ggtitle("One dot per year, median as a line")
@@ -208,9 +210,9 @@ ggplot(data=dtsmonthly)+
 More detailed picture (without irrelevant category):
 
 ```{r}
-ggplot(data=filter(dtsmonthly, predictions!="irrelevant"))+
-  geom_point(aes(x=month, y=ntweets, colour = predictions))+ 
-  geom_line(aes(x=month, y=ntweets_median, group=predictions, colour=predictions))+
+ggplot(data=filter(dtsmonthly, prediction!="irrelevant"))+
+  geom_point(aes(x=month, y=ntweets, colour = prediction))+ 
+  geom_line(aes(x=month, y=ntweets_median, group=prediction, colour=prediction))+
   theme_bw()+
   scale_colour_manual(values=mycols)+
   ggtitle("One dot per year, median as a line (without irrelevant)")
@@ -219,11 +221,11 @@ ggplot(data=filter(dtsmonthly, predictions!="irrelevant"))+
 
 
 ```{r}
-ggplot(data=filter(dtsmonthly, predictions!="irrelevant"))+
-  # geom_violin(aes(x=month, y=ntweets, colour = predictions))+ 
-  geom_point(aes(x=month, y=ntweets, colour = predictions))+ 
-  geom_line(aes(x=month, y=ntweets_median, group=predictions, colour=predictions))+
-  facet_wrap(~predictions)+
+ggplot(data=filter(dtsmonthly, prediction!="irrelevant"))+
+  # geom_violin(aes(x=month, y=ntweets, colour = prediction))+ 
+  geom_point(aes(x=month, y=ntweets, colour = prediction))+ 
+  geom_line(aes(x=month, y=ntweets_median, group=prediction, colour=prediction))+
+  facet_wrap(~prediction)+
   theme_bw()+
   scale_colour_manual(values=mycols)+
   theme(axis.text.x=element_text(angle=60, hjust=1), axis.title.x=element_blank(), legend.position="none")+
@@ -238,16 +240,16 @@ ggplot(data=filter(dtsmonthly, predictions!="irrelevant"))+
 # Entire timeline of daily tweets per category
 
 ```{r}
-ggplot(data=dcatperday, aes(x=date, y=ntweets, colour = predictions))+
+ggplot(data=dcatperday, aes(x=date, y=ntweets, colour = prediction))+
   geom_line()+
   theme_bw()+
   scale_colour_manual(values=mycols)
 ```
 
 ```{r, coping suicidality daily}
-ggplot(data=filter(dcatperday, predictions=="coping" | predictions=="suicidality"), 
-                   aes(x=date, y=ntweets, colour = predictions))+
-    geom_line()+ facet_wrap(~predictions, ncol=1)+
+ggplot(data=filter(dcatperday, prediction=="coping" | prediction=="suicidality"), 
+                   aes(x=date, y=ntweets, colour = prediction))+
+    geom_line()+ facet_wrap(~prediction, ncol=1)+
   theme_bw()+theme(legend.position="none")+
   scale_colour_manual(values=mycols)+
   ggtitle("Only coping and suicidality")
@@ -256,23 +258,23 @@ On which days are these highest peaks?
 
 ```{r}
 dcatperday %>% 
- filter(predictions=="coping" | predictions=="suicidality") %>% 
+ filter(prediction=="coping" | prediction=="suicidality") %>% 
   filter(ntweets>10000) %>% 
-  select(predictions, date, ntweets) %>% 
-  arrange(predictions)
+  select(prediction, date, ntweets) %>% 
+  arrange(prediction)
 ```
 
 ## Awareness, Prevention, Werther
 
 ```{r}
-ggplot(data=filter(dcatperday, predictions=="awareness" | predictions=="prevention"  | predictions=="werther"), 
-                   aes(x=date, y=ntweets, colour = predictions))+
-  geom_line()+ facet_wrap(~predictions, ncol=1)+
+ggplot(data=filter(dcatperday, prediction=="awareness" | prediction=="prevention"  | prediction=="werther"), 
+                   aes(x=date, y=ntweets, colour = prediction))+
+  geom_line()+ facet_wrap(~prediction, ncol=1)+
   theme_bw()+theme(legend.position="none")+
   scale_colour_manual(values=mycols)
-ggplot(data=filter(dcatperday, predictions=="awareness" | predictions=="prevention"  | predictions=="werther"), 
-                   aes(x=date, y=ntweets, colour = predictions))+
-  geom_line()+ facet_wrap(~predictions, ncol=1)+
+ggplot(data=filter(dcatperday, prediction=="awareness" | prediction=="prevention"  | prediction=="werther"), 
+                   aes(x=date, y=ntweets, colour = prediction))+
+  geom_line()+ facet_wrap(~prediction, ncol=1)+
   theme_bw()+theme(legend.position="none")+
   scale_colour_manual(values=mycols)+ggtitle("same plots with peaks above 35.000 cut")+
   ylim(0, 35000)
@@ -282,7 +284,7 @@ ggplot(data=filter(dcatperday, predictions=="awareness" | predictions=="preventi
 
 ```{r}
 dcatperday %>% 
-  filter(predictions=="awareness") %>% 
+  filter(prediction=="awareness") %>% 
   filter(ntweets>15000) %>% 
   select(date, ntweets)
 ```
@@ -295,7 +297,7 @@ dcatperday %>%
 
 ```{r}
 dcatperday %>% 
-  filter(predictions=="prevention") %>% 
+  filter(prediction=="prevention") %>% 
   filter(ntweets>12000) %>% 
   select(date, ntweets)
 ```
@@ -306,7 +308,7 @@ dcatperday %>%
 
 ```{r}
 dcatperday %>% 
-  filter(predictions=="werther") %>% 
+  filter(prediction=="werther") %>% 
   filter(ntweets>12000) %>% 
   select(date, ntweets)
 ```
@@ -316,23 +318,23 @@ dcatperday %>%
 
 ```{r}
 dcatperwday = dcatperday %>% 
-  group_by(weekday, predictions) %>% 
+  group_by(weekday, prediction) %>% 
   summarise(median_tweets = median(ntweets)) %>% 
   #thousand tweets
   mutate(thousand_tweets = median_tweets/1000) %>% ungroup()
 #plot per week day
-ggplot(data=dcatperwday, aes(x=weekday, y=median_tweets, colour = predictions))+
-  geom_point()+ geom_line(aes(group=predictions))+
+ggplot(data=dcatperwday, aes(x=weekday, y=median_tweets, colour = prediction))+
+  geom_point()+ geom_line(aes(group=prediction))+
   theme_bw()+
   scale_colour_manual(values=mycols)+
   ggtitle("Median tweets per weekday")
-ggplot(data=filter(dcatperwday, predictions !="irrelevant"), aes(x=weekday, y=median_tweets, colour = predictions))+
-  geom_point()+ geom_line(aes(group=predictions))+
+ggplot(data=filter(dcatperwday, prediction !="irrelevant"), aes(x=weekday, y=median_tweets, colour = prediction))+
+  geom_point()+ geom_line(aes(group=prediction))+
   theme_bw()+
   scale_colour_manual(values=mycols)+
   ggtitle("Median tweets per weekday (without irrelevant category)")
-ggplot(data=filter(dcatperwday, predictions =="coping" | predictions == "suicidality"), aes(x=weekday, y=median_tweets, colour = predictions))+
-  geom_point()+ geom_line(aes(group=predictions))+
+ggplot(data=filter(dcatperwday, prediction =="coping" | prediction == "suicidality"), aes(x=weekday, y=median_tweets, colour = prediction))+
+  geom_point()+ geom_line(aes(group=prediction))+
   theme_bw()+
   scale_colour_manual(values=mycols)+
   ggtitle("Median tweets per weekday: suicidality and coping category)")

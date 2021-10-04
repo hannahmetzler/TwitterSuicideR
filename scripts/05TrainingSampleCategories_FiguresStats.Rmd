@@ -23,40 +23,49 @@ library(lubridate) #to format dates
 ```
 
 
-```{r, prepare data, create main categories}
-# Create dataset with important classess only, and all minority classes combined with irrelevant tweets
-d0 <- read.csv('../tweet_training_set/training_posts20201126_corrections_true_label_errors.tsv', header=TRUE, sep='\t')
-
-# as.data.frame(xtabs(~Category, d0))
-
-d = d0 %>% 
-  #add all minority classes and suicide other and off-topic to one large class called "irrelevant":
-  #based on comparison of tweet texts of different categories, news tweets are really different from personal coping or suicidality tweets, 
-  #therefore all into irrelevant (this now includes off-topic and suicide_other tweets, to limit classes to 6 for the machine learning model)
-  mutate(main_category = recode(Category, news_suicidality = "irrelevant", news_coping = "irrelevant", bereaved_negative = "irrelevant", bereaved_coping = "irrelevant", 
-                                life_saved = "irrelevant", suicide_other = "irrelevant", "off-topic" = "irrelevant", 
-                                coping1 = "coping", coping3 = "coping", suicidality1 = "suicidality", suicidality3 = "suicidality")) %>% 
-  # is a tweet actually about suicide or not?
-  mutate(about_suicide = ifelse(Category=="off-topic", 0, 1)) %>%
-  #e.g. put Category 2 column after Category column
-  dplyr::relocate(main_category, .after=Category2) %>%
-  dplyr::relocate(about_suicide, .after=main_category)
-
-names(d) = tolower(names(d))
-
-# as.data.frame(xtabs(~main_category, d))
-
+```{r, load dataset 20201130 and create main categories}
+# # Create dataset with important classess only, and all minority classes combined with irrelevant tweets
+# d0 <- read.csv('../tweet_training_set/training_posts20201126_corrections_true_label_errors.tsv', header=TRUE, sep='\t')
+# # as.data.frame(xtabs(~Category, d0))
+# 
+# d = d0 %>% 
+#   #add all minority classes and suicide other and off-topic to one large class called "irrelevant":
+#   #based on comparison of tweet texts of different categories, news tweets are really different from personal coping or suicidality tweets, 
+#   #therefore all into irrelevant (this now includes off-topic and suicide_other tweets, to limit classes to 6 for the machine learning model)
+#   mutate(main_category = recode(Category, news_suicidality = "irrelevant", news_coping = "irrelevant", bereaved_negative = "irrelevant", bereaved_coping = "irrelevant", 
+#                                 life_saved = "irrelevant", suicide_other = "irrelevant", "off-topic" = "irrelevant", 
+#                                 coping1 = "coping", coping3 = "coping", suicidality1 = "suicidality", suicidality3 = "suicidality")) %>% 
+#   # is a tweet actually about suicide or not?
+#   mutate(about_suicide = ifelse(Category=="off-topic", 0, 1)) %>%
+#   #e.g. put Category 2 column after Category column
+#   dplyr::relocate(main_category, .after=Category2) %>%
+#   dplyr::relocate(about_suicide, .after=main_category)
+# 
+# names(d) = tolower(names(d))
+#
 # write.table(d1,'./tweet_training_set/training_posts20201130_main_categories.tsv', sep='\t', row.names=F)
 # save(d1, file='./tweet_training_set/training_posts20201130_main_categories.R')
+```
+
+
+```{r, load final labelled/training dataset}
+# we added a couple more tweets after after 30/11/2020 new training sample: 
+#load newest version of training sample (8 more coping tweets, 5 more suicidality, 9 more bereaved)
+d = read.csv('../tweet_training_set/training_posts20201201_main_categories.tsv', header=TRUE, sep='\t')
 
 #define the order of categories for plots
-ord_category <- c("suicidality1","suicidality3","coping1", "coping3", "news_coping", "news_suicidality", "bereaved_negative", "bereaved_coping","awareness", "prevention",  "werther", "life_saved", "suicide_other","off-topic")
+ord_category_details <- c("suicidality1","suicidality3","coping1", "coping3", "news_coping", "news_suicidality", "bereaved_negative", "bereaved_coping","awareness", "prevention",  "werther", "life_saved", "suicide_other","off-topic")
+ord_category <- c("suicidality","coping", "news_coping", "news_suicidality", "bereaved_negative", "bereaved_coping","awareness", "prevention",  "werther", "life_saved", "suicide_other","off-topic")
 ord_mcategory= c( "suicidality", "coping", "awareness", "prevention", "werther", "irrelevant")
 
-#load newest version of training sample (8 more coping tweets, 5 more suicidality, 9 more bereaved)
+#format variables
 d <- d %>% 
+  #make subcategories without details (i.e. the 1/3 perspective annotation combined) 
+  rename(category_details = category) %>% 
+  mutate(category = recode(category_details, coping1 = "coping", coping3 = "coping", suicidality1 = "suicidality", suicidality3 = "suicidality")) %>% 
   #order the categories
   mutate(category = factor(category, levels = ord_category, labels = ord_category),
+         category_details = factor(category, levels = ord_category_details, labels = ord_category_details),
          main_category = factor(main_category, levels = ord_mcategory, labels = ord_mcategory),
          about_suicide = factor(about_suicide, levels = c(0,1), labels = c("no", "yes")),
          notserious_unclear = factor(notserious_unclear, levels = c(0,1), labels = c("no", "yes")))
@@ -88,7 +97,7 @@ d %>%
   group_by(lubridate::year(date)) %>% 
   summarise(nyear = n()) %>% 
   ungroup()
-```
+  ```
 
 First and last date
 
@@ -103,13 +112,13 @@ d %>%
 
 # Proportions for different categories in the final training data set, stats and figures 
 
-##  Proportion of tweets per subcategory 
+##  Proportion of tweets per subcategory in training sample 
 
 ```{r}
 prop.cat = as.data.frame(d %>% 
                 group_by(category) %>%
                 summarise (n = n()) %>%
-                mutate(freq = n / sum(n))) %>%
+                mutate(freq = round(n / sum(n)*100,2))) %>%
   ungroup()
 prop.cat
 ```
@@ -120,8 +129,7 @@ prop.cat
 prop.main <- as.data.frame(d %>%
                              group_by(main_category) %>%
                              summarise (n = n()) %>%
-                             mutate(freq = n / sum(n))) %>% 
-  ungroup()
+                             mutate(freq = n / sum(n))) 
 # write.table(prop.main,'output/tweets_per_maincategory_finaltrainingsample_20210104.tsv', sep='\t', row.names=F)
 prop.main
 ```
@@ -262,8 +270,8 @@ prop.main <- as.data.frame(d %>%
                              summarise (n = n()) %>%
                              mutate(freq = n / sum(n))) %>% 
   ungroup()
-# write.table(prop.main,'output/tweets_per_maincategory_finaltrainingsample_20210104.tsv', sep='\t', row.names=F)
-prop.main
+write.table(prop.main,'../output/tweets_per_maincategory_randomsample_20211004.tsv', sep='\t', row.names=F)
+# prop.main
 ```
 
 ```{r}
@@ -288,3 +296,16 @@ plot.n.main
 #pdf('./figures/maincategories_random_sample.pdf', height=5, width=7); plot.prop.main; plot.n.main; #dev.off()
 # write.table(prop.main,'output/tweets_per_maincategory_randomsample_20210104.tsv', sep='\t', row.names=F)
 ```
+
+## Proportion per subcategory in random sample
+
+```{r}
+prop.cat = as.data.frame(d %>% 
+                           filter(set=="basefrequency") %>% 
+                           group_by(category) %>%
+                           summarise (n = n()) %>%
+                           mutate(freq = round(n / sum(n)*100,2))) %>%
+  ungroup()
+# write.table(prop.cat,'../output/tweets_per_subcategory_randomsample_20211004.tsv', sep='\t', row.names=F)
+```
+

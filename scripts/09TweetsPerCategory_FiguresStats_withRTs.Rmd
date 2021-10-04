@@ -1,7 +1,7 @@
 ---
-title: "Tweets per Category in the ML predictions dataset (BERT) based on query with RTs"
+title: "Tweets per Category in the ML predictions dataset (BERT) based on Crimson Hexagon query with retweets"
 author: "Hannah Metzler"
-date: "16th May 2021"
+date: "4th October 2021"
 output: 
   pdf_document:
     df_print: kable
@@ -95,12 +95,11 @@ prop.pred = prop.pred %>%
   #correct n for category irrelevant (because dividing by recall does not work there)
 prop.pred[prop.pred$prediction=="irrelevant", "freq_adjusted"] = 100-sum(prop.pred$freq_adjusted, na.rm = T)
 # write.csv(file="../output/estimated_freq_per_category_retweet_dataset.csv", prop.pred)
-prop.pred
 
 #plot 
 ggplot(prop.pred, aes(x=prediction, y = freq, fill=prediction)) + #dataset and variables to plot
   geom_bar(stat="identity")+
-  ggtitle("Tweets per predicted category in full 2013-2020 sample")+
+  ggtitle("Tweets per predicted category")+
   labs(y="Proportion", x="") + #axes and title labels
   scale_fill_manual(values=c("#332288", "#88CCEE", "#44AA99", "#117733", '#999933', '#DDCC77', '#CC6677', "#882255", "#332288", "#88CCEE", "#44AA99", "#AA4499", "#999999",  "#444444"))+
   theme_bw() +  
