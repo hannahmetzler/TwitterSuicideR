@@ -34,7 +34,7 @@ dp <- read.csv('tweets_other_datasets/twitter_13M_with_predictions.csv', strings
   select(-c(date_time, time, year))
 
 
-# length(unique(dp$id)) #9 583 294, rows: 13 427 526
+  # length(unique(dp$id)) #9 583 294, rows: 13 427 526
 
 #read data with retweets
 drt<- read.table('tweets_other_datasets/Suicide_all_ids-rts.txt', sep=',', header=F, colClasses = "character") %>%
