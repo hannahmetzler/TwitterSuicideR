@@ -30,7 +30,7 @@ load("../data_tweet_volumes/Suicide_tweets_daily_volume_per_maincategory_withRTs
 #our source script (but this takes a couple of minutes)
 # source('06BuildPredictionsTimelineDataset.R')
 
-#assign colours to categories: 
+#assign colours to categories:
 catcols = viridis(6)
 mycols = c("awareness"= catcols[1], "werther"=catcols[6], "prevention"=catcols[4], "suicidality"=catcols[5], "coping"=catcols[2], "irrelevant"=catcols[3])
 
