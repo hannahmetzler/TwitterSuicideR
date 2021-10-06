@@ -11,3 +11,8 @@ tweets_text/
 reports/
 *.tex
 *.sav
+output/
+models/
+*.Rproj
+scripts_Konstantin
+scripts_Konstantin/
