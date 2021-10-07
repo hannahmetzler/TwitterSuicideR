@@ -1,0 +1,3 @@
+About_suicide,Precision,Recall,F1,Accuracy
+About suicide,0.90,0.95,0.92,0.90
+Off-topic,0.80,0.67,0.73,0.80
