@@ -82,21 +82,63 @@ dcatperday %>%
 ## Total number per category
 
 ```{r}
-prop.pred = as.data.frame(dcatperday %>%
+prop.pred.grand = as.data.frame(dcatperday %>%
                 group_by(prediction) %>%
                 summarise (n = sum(ntweets)) %>%
                 mutate(freq = round(n/ sum(n)*100,2)))
+# #CI
+# binomci <- function(prop.pred.grand){
+#   for (i in seq(1:nrow(prop.pred.grand))){
+#     ci =with(prop.pred.grand, binom.test(x = n[i], n =sum(n)))$conf.int
+#     prop.pred.grand$cilow[i] = ci[1] 
+#     prop.pred.grand$cihigh[i] = ci[2]
+#   } 
+#  return(prop.pred.grand)
+# }
+# prop.pred.grand = binomci(prop.pred.grand)
 
 #adjust by the recall of the model: divide by the recall (because I want to increase the number if the recall is low)
-prop.pred$recall_bert = c(0.45, 0.69, 0.70, 0.89, 0.77, NA)
-prop.pred = prop.pred %>% 
+prop.pred.grand$recall_bert = c(0.45, 0.69, 0.70, 0.89, 0.77, NA)
+prop.pred.grand = prop.pred.grand %>% 
   mutate(n_adjusted = n/recall_bert) %>% 
-  mutate(freq_adjusted = round(n_adjusted/sum(prop.pred$n)*100,2))
+  mutate(freq_adjusted = round(n_adjusted/sum(prop.pred.grand$n)*100,2))
   #correct n for category irrelevant (because dividing by recall does not work there)
-prop.pred[prop.pred$prediction=="irrelevant", "freq_adjusted"] = 100-sum(prop.pred$freq_adjusted, na.rm = T)
-# write.csv(file="../output/estimated_freq_per_category_retweet_dataset.csv", prop.pred)
+prop.pred.grand[prop.pred.grand$prediction=="irrelevant", "freq_adjusted"] = 100-sum(prop.pred.grand$freq_adjusted, na.rm = T)
+# write.csv(file="../results/estimated_freq_per_category_retweet_dataset.csv", prop.pred.grand)
+prop.pred.grand
 
-#plot 
+```
+
+Standard deviation, min and max across daily proportions per category
+
+```{r}
+prop.pred.daily = dcatperday %>%
+  #collapse across tweet type (original vs retweet)
+  group_by(date, prediction) %>% 
+  mutate(ncat = sum(ntweets)) %>% 
+  slice(1) %>% #drop 2nd line
+  group_by(prediction) %>% 
+  
+  #daily percentage
+  summarise(freq = ncat/ndaytotal*100) %>% 
+  #mean and sd across all days
+  group_by(prediction) %>% 
+  summarise(mean = round(mean(freq),2),
+            sd = round(sd(freq),2), 
+            min = round(min(freq), 2), 
+            max = round(max(freq), 2)) %>% 
+  #adjust for model recall
+  mutate(mean_adjusted = round(mean/prop.pred.grand$recall_bert, 2))
+#correct n for category irrelevant (because dividing by recall does not work there)
+prop.pred.daily[prop.pred.daily$prediction=="irrelevant", "mean_adjusted"] = 100-sum(prop.pred.daily$mean_adjusted, na.rm = T)
+prop.pred.daily
+write.csv(file="../results/estimated_freq_per_category_retweet_dataset_sd_min_max.csv", prop.pred.daily)
+
+```
+
+Proportions per category
+
+```{r}
 ggplot(prop.pred, aes(x=prediction, y = freq, fill=prediction)) + #dataset and variables to plot
   geom_bar(stat="identity")+
   ggtitle("Tweets per predicted category")+
@@ -105,6 +147,7 @@ ggplot(prop.pred, aes(x=prediction, y = freq, fill=prediction)) + #dataset and v
   theme_bw() +  
   theme(axis.text.x = element_text(angle = 45, hjust=1), legend.position="none", text=element_text(size=s))
 ```
+
 
 ## Total number of tweets per category by year
 
