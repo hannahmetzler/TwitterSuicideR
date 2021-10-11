@@ -300,17 +300,28 @@ irr::kappa2(d4[c("category.hannah", "category.thomas")])
 
 ## 2 categories: About actual suicide
 
+Macro-average: 
+
 ```{r}
 caret::confusionMatrix(d4$about_suicide.hannah, d4$about_suicide.thomas, positive="Yes")$table
 round(caret::confusionMatrix(d4$about_suicide.hannah, d4$about_suicide.thomas, positive="Yes")$overall[c("Accuracy", "Kappa")],2)
 ```
+Macro-average without the category suicide other: 
 
-About suicide
+```{r}
+caret::confusionMatrix(d4_no_other$about_suicide.hannah, d4_no_other$about_suicide.thomas, positive="Yes")$table
+round(caret::confusionMatrix(d4_no_other$about_suicide.hannah, d4_no_other$about_suicide.thomas, positive="Yes")$overall[c("Accuracy", "Kappa")],2)
+```
+
+
+Per category: About suicide
+
 ```{r}
 round(caret::confusionMatrix(d4$about_suicide.hannah, d4$about_suicide.thomas, positive="Yes")$byClass[c("Precision", "Recall", "F1")], 2)
 ```
 
-Not about suicide
+Off-topic 
+
 ```{r}
 round(caret::confusionMatrix(d4$about_suicide.hannah, d4$about_suicide.thomas, positive="No")$byClass[c("Precision", "Recall", "F1")], 2)
 ```
