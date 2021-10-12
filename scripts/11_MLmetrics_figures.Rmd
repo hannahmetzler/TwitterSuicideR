@@ -49,7 +49,7 @@ plot6 = ggplot(d6l, aes(x=Main_category, y = Score, fill=Metric, colour = Metric
    scale_colour_manual(values=mycols, name="")+
   scale_y_continuous(breaks = seq(0, 1, 0.1), limits = c(0, 0.95))+
   theme_bw() +  
-  theme(legend.position="bottom", text=element_text(size=s), axis.title.x=element_blank(), plot.margin = margin(rep(0.6,4), unit="cm"))
+  theme(legend.position="bottom", text=element_text(size=s), axis.title.x=element_blank(), plot.margin = margin(rep(0.5,4), unit="cm"))
 plot6
 ```
 
@@ -71,19 +71,20 @@ plotabout = ggplot(dsl, aes(x=About_suicide, y = Score, fill=Metric, colour = Me
    scale_colour_manual(values=mycols, name="")+
   scale_y_continuous(breaks = seq(0, 1, 0.1), limits = c(0, 0.95))+
   theme_bw() +  
-  theme(legend.position="bottom", text=element_text(size=s), axis.title.x=element_blank(), plot.margin = margin(rep(0.6,4), unit="cm"))
+  theme(legend.position="bottom", text=element_text(size=s), axis.title.x=element_blank(), plot.margin = margin(rep(0.5,4), unit="cm"))
 plotabout
 plotabout_b = plotabout + theme(axis.title.y = element_blank())
 ```
+
 # Combined figure for paper
 
-```{r, fig.width=11, fig.height=5}
+```{r, fig.width=9.5, fig.height=4}
 
 combined = ggarrange(plot6, plotabout_b, ncol=2, nrow=1, common.legend = TRUE, legend="bottom", 
-          labels = c("a", "b"), widths = c(2,1), font.label = list(size = 20))
+          labels = c("a", "b"), widths = c(2,1), font.label = list(size = 16))
 combined
 
 ggsave('../figures/Figure1_BERT2_intraclasses.pdf', combined,
-      width=11, height=5, dpi=300)
+      width=9.5, height=4, dpi=300)
 ```
 

@@ -50,7 +50,9 @@ dh4 <- read.csv('../reliability_datasets/round4_150x5_suicide_Hannah_complete_ID
          category2 = as.factor(category2)) %>%
   mutate(time = as.character(time), 
          id = as.character(id)) %>% 
-  mutate(main_category = recode(category, news_suicidality = "irrelevant", news_coping = "irrelevant", bereaved_negative = "irrelevant", bereaved_coping = "irrelevant", 
+  mutate(main_category = recode(category, 
+                                news_suicidality = "irrelevant", news_coping = "irrelevant", 
+                                bereaved_negative = "irrelevant", bereaved_coping = "irrelevant", 
                                 life_saved = "irrelevant", suicide_other = "irrelevant", "off-topic" = "irrelevant", 
                                 coping1 = "coping", coping3 = "coping", suicidality1 = "suicidality", suicidality3 = "suicidality"))
 ```
@@ -166,12 +168,18 @@ d4 = db4 %>%
          type.hannah = type, 
          time = time.bert, 
          category2.hannah = category2) %>% 
-  mutate(category2.hannah = na_if(category2.hannah,""))
+  mutate(category2.hannah = na_if(category2.hannah,"")) %>% 
+  #create a category variable with all 14 levels, including the perspective 1 and 2 for coping and suicidal tweets
+  rename(detailed_category.hannah =  category.hannah, 
+         detailed_category.thomas= category.thomas) %>% 
+  #reduce 14 levels to 12 for the category variable
+  mutate( category.hannah  = recode(detailed_category.hannah,  coping1 = "coping", coping3 = "coping", suicidality1 = "suicidality", suicidality3 = "suicidality" ), 
+           category.thomas  = recode(detailed_category.thomas,  coping1 = "coping", coping3 = "coping", suicidality1 = "suicidality", suicidality3 = "suicidality" ))
 #order columns
 d4 = d4[, c("id", "time", "text", 
             "main_category.BERT", "predictionBERT1", "category.hannah", "category.thomas", 
             "main_category.hannah",  "main_category.thomas", 
-            "category2.hannah", "focus.hannah", "focus.thomas",   "type.hannah",
+            "category2.hannah", "detailed_category.hannah", "focus.hannah", "focus.thomas",   "type.hannah",
             "notserious_unclear.hannah", "notserious_unclear.thomas", 
             "notes.hannah", "notes.thomas")]
 
@@ -193,6 +201,8 @@ dh4 = dh4 %>%
   mutate(main_category = factor(main_category, levels = ord_mcategory, labels = ord_mcategory))
 dt4 = dt4 %>% 
   mutate(main_category = factor(main_category, levels = ord_mcategory, labels = ord_mcategory))
+str(d4)
+levels(d4$category.thomas)
 ```
 
 
@@ -341,5 +351,9 @@ byclass = data.frame(
 byclass = byclass[ order((row.names(byclass))), ]
 
 # write.csv(file = "../output/inter-rater-reliability.csv", byclass)
+```
+
+```{r, save dataset with predictions and human labels}
+save(d4, file  = '../reliability_datasets/round4_150x5_suicide_human&model_BERT_finetuned.R')
 ```
 
