@@ -43,7 +43,9 @@ dcatperday = dcatperday %>%
   #category order
   mutate(prediction = factor(prediction, levels = ord_mcategory, labels = ord_mcategory))
 
+summary(dcatperday)
 ```
+
 
 # Dataset description
 
@@ -61,7 +63,7 @@ Predictions were made with the BERT base model, fine-tuned (more epochs, smaller
 * Last included date: 2021-04-13
 
 # Sample descriptives 
-## Total sample size, and sample per year 
+### Total sample size
 
 ```{r}
 dcatperday %>%
@@ -69,7 +71,22 @@ dcatperday %>%
   slice(1) %>% 
   ungroup() %>% 
   summarise(mio_tweets = sum(ndaytotal)/1000000)
+```
 
+Total sample size 2016-2018 for paper: 
+
+```{r}
+dcatperday %>%
+  filter(year %in% c(2016, 2017, 2018)) %>% 
+  group_by(date) %>% #only first line of 6 categories (ndaytotal is the same on each line)
+  slice(1) %>% 
+  ungroup() %>% 
+  summarise(mio_tweets = sum(ndaytotal))
+```
+
+
+### Sample per year 
+```{r}
 dcatperday %>%
   group_by(date) %>% #only first line of 6 categories (ndaytotal is the same on each line)
   slice(1) %>% 
@@ -79,13 +96,16 @@ dcatperday %>%
   filter(year!="2021")
 ```
 
-## Total number per category
+### Total number per category for paper (2016-2018)
 
 ```{r}
-prop.pred.grand = as.data.frame(dcatperday %>%
-                group_by(prediction) %>%
-                summarise (n = sum(ntweets)) %>%
-                mutate(freq = round(n/ sum(n)*100,2)))
+prop.pred.grand = as.data.frame(
+  dcatperday %>%
+    filter(year %in% c(2016, 2017, 2018)) %>% 
+    group_by(prediction) %>%
+    summarise (n = sum(ntweets)) %>%
+    mutate(freq = round(n/ sum(n)*100,2)))
+
 #CI
 binomci <- function(prop.pred.grand){
   for (i in seq(1:nrow(prop.pred.grand))){
@@ -104,7 +124,7 @@ prop.pred.grand = prop.pred.grand %>%
   mutate(freq_adjusted = round(n_adjusted/sum(prop.pred.grand$n)*100,2))
   #correct n for category irrelevant (because dividing by recall does not work there)
 prop.pred.grand[prop.pred.grand$prediction=="irrelevant", "freq_adjusted"] = 100-sum(prop.pred.grand$freq_adjusted, na.rm = T)
-# write.csv(file="../results/estimated_freq_per_category_retweet_dataset.csv", prop.pred.grand)
+write.csv(file="../results/estimated_freq_per_category_retweet_dataset1.csv", prop.pred.grand)
 prop.pred.grand
 ```
 
@@ -118,12 +138,13 @@ ggplot(prop.pred.grand, aes(x=prediction, y = freq, fill=prediction)) + #dataset
   theme_bw() +  
   theme(axis.text.x = element_text(angle = 45, hjust=1), legend.position="none", text=element_text(size=s))
 ```
-Not adjusted by modell recall
+Not adjusted by model recall
 
-Standard deviation, min and max across daily proportions per category
+### Standard deviation, min and max across daily proportions per category
 
 ```{r}
 prop.pred.daily = dcatperday %>%
+  filter(year %in% c(2016, 2017, 2018)) %>% 
   #collapse across tweet type (original vs retweet)
   group_by(date, prediction) %>% 
   mutate(ncat = sum(ntweets)) %>% 
@@ -131,7 +152,7 @@ prop.pred.daily = dcatperday %>%
   group_by(prediction) %>% 
   
   #daily percentage
-  summarise(freq = ncat/ndaytotal*100) %>% 
+  mutate(freq = ncat/ndaytotal*100) %>% 
   #mean and sd across all days
   group_by(prediction) %>% 
   summarise(mean = round(mean(freq),2),
@@ -143,7 +164,7 @@ prop.pred.daily = dcatperday %>%
 #correct n for category irrelevant (because dividing by recall does not work there)
 prop.pred.daily[prop.pred.daily$prediction=="irrelevant", "mean_adjusted"] = 100-sum(prop.pred.daily$mean_adjusted, na.rm = T)
 prop.pred.daily
-# write.csv(file="../results/estimated_freq_per_category_retweet_dataset_sd_min_max.csv", prop.pred.daily)
+#   write.csv(file="../results/estimated_freq_per_category_retweet_dataset_sd_min_max.csv", prop.pred.daily)
 
 ggplot(prop.pred.daily, aes(x=prediction, y = mean, fill=prediction)) + #dataset and variables to plot
   geom_bar(stat="identity")+
