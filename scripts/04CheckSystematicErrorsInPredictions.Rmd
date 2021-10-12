@@ -1,7 +1,7 @@
 ---
 title: "Examine misclassified tweets for systematic errors"
 author: "Hannah Metzler"
-date: "11/30/2020"
+date: "11 Oct 2021"
 output: 
   pdf_document:
     df_print: kable
@@ -20,175 +20,120 @@ library(dplyr)
 library(stringr)
 ```
 
-Hubert Email 16.11.2020: Predictions des bislang bestes Modell. Anbei ist das Testset, mit dem (bearbeiteten) Text, der richtigen Klasse, der vorhergesagten Klasse, und den vier wichtigsten Uni- bzw. Bigrams die das Modell 
-verwendet hat um die Klasse zu predicten (auch wenn die Prediction nicht gleich der richtigen Klasse entspricht). Hier ist zu beachten, dass für die Word Clouds die Bigrams in einzelne Wörter geteilt wurden.
+# Results with the final training set and predictions with the final model
 
-These results were achieved with the following model and dataset: 
-
-- XLNET from 12/13th of november 2020
-- preprocessing: punctuation + stopwords + digits included
-- Testing 12 classes - balanced dataset, balance achieved with translations of rarer classes
-- Hubert's notes: I used Google Translates API to translate the samples into a random language (in bulk) and back to English (this process is not 100% consistent, it sometimes does not translate back from the random language back to english). My guess is that too many individual requests are sent (e.g.  sending 2 requests to the API shortly after each other, sometimes the second one does not get through). The following tests take the translations (and their mistakes + inconsistencies) as is, we have not processed them! (possibility to improve performance). This means we now have a balanced training set , all classes have the same frequency there, but the validation and test set still follow our original skewed distribution (and were not translated - no dilution between training and testing)
-- Translations mainly add noise, sometimes the back translation to English does not work because Hubert has to send 2 requests to the API shortly after each other, sometimes the second one does not get through. Despite this noise, it still really improves performance.
-
-This model achieves the following average results across all test samples, based on two different train/validation/test set splits: 
-
-* F1:  0.5761178066530185 ; Prec:  0.6510283084270728 ; Rec:  0.5632690875500864 ; Acc:  0.6514913657770801
-* F1:  0.5777506283832968 ; Prec:  0.6460481007323112 ; Rec:  0.5676919384162343 ; Acc:  0.6295133437990581
-
-
-
+Predictions were made with BERT fine tuned with LR = 1e5, 10 epochs, seed 1. This model is called BERT 2 in the paper. The BERT 2 model correctly classified 74% of tweets in the test set. F1-scores lay between 70% to 85% for the different categories of interest (see Table 3 and Figure 1a in the paper), with the exception of the suicidal ideation & attempts category with an F1-score of 55%. More specifically, recall for suicidal ideation & attempt was relatively low (49%), indicating difficulties in detecting all such tweets, whereas precision was higher with 62%. Performances were particularly good (>84%) for prevention tweets, and also quite high for tweets about suicide cases (>75%). For coping tweets, BERT 2 achieved very high precision (82%), but lower recall (67%), which resembles the pattern observed for suicidal tweets. Performances for awareness tweets were around 70%. 
 
 ```{r}
-#read model predictions
-d = read.csv('../model_predictions_reliability/test_withPredictions_20201116.csv')
+load('../reliability_datasets/round4_150x5_suicide_human&model_BERT_finetuned.R')
 
-# read the training set
-train <- read.csv('../tweet_training_set/training_posts20201124_multiple_labels.tsv', sep = "\t")
+#format and order variables and labels, so they are the same as with the previous training dataset
+d = d4 %>% 
+  rename(true_label = main_category.hannah, 
+         prediction = main_category.BERT) %>% 
+  #labels as sentence case (big first letter)
+  mutate(true_label = recode(true_label,  "suicidality" = "Suicidality", "coping" = "Coping", 
+    "awareness" = "Awareness", "prevention" = "Prevention", 
+    "werther" = "Werther", "irrelevant" = "Irrelevant"), 
+    prediction = recode(prediction,  "suicidality" = "Suicidality", "coping" = "Coping", 
+    "awareness" = "Awareness", "prevention" = "Prevention", 
+    "werther" = "Werther", "irrelevant" = "Irrelevant"))
 
 ```
 
+## Confusion Matrix
 
-# Werther
+```{r, fig.width = 10, fig.height=5}
+#order of categories for plots
+ord_mcategory= rev(c( "Suicidality", "Coping", "Awareness", "Prevention", "Werther", "Irrelevant"))
 
-True Werther tweets are misclassified with mostly the suicide_other category, everything else is alright. 
+main_confusion_matrix = as.data.frame(round(
+  prop.table(caret::confusionMatrix(d$prediction, d$true_label)$table, margin = 2), 2)) %>% 
+    #category order
+  mutate(Prediction = factor(Prediction, levels = ord_mcategory, labels = ord_mcategory), 
+         Reference = factor(Reference, levels = ord_mcategory, labels = ord_mcategory))%>% 
+  #rename some labels for the paper figure
+   mutate(Prediction = recode(Prediction, "Suicidality" = "Suicidal", "Werther" = "Suicide cases"), 
+          Reference = recode(Reference, "Suicidality" = "Suicidal", "Werther" = "Suicide cases"))
+plotpercent = ggplot(main_confusion_matrix, aes(Prediction, Reference, fill = Freq)) +
+  geom_tile() +
+  geom_text(aes(label = scales::percent(Freq))) +
+  scale_fill_gradient(low = "white", high = "#3575b5") +
+  labs(x = "Prediction", y = "True Label", fill = "Percent") + theme_bw()+
+  theme(plot.title = element_text(size = 25, hjust = 0.5, 
+                                  margin = margin(20, 0, 20, 0)),
+        legend.title = element_text(size = 14, margin = margin(0, 20, 10, 0)),
+        axis.title.x = element_text( size = 18), #margin = margin(20, 20, 20, 20),
+        axis.title.y = element_text(size = 18), #margin = margin(0, 20, 0, 10), 
+        axis.text=element_text(size=14), 
+        axis.text.x = element_text(angle = 45,  hjust=1), 
+        legend.position = "none")
+#count of tweets
+main_confusion_matrix_count = as.data.frame(round(
+ caret::confusionMatrix(d$prediction, d$true_label)$table, 2)) %>% 
+    #category order
+  mutate(Prediction = factor(Prediction, levels = ord_mcategory, labels = ord_mcategory), 
+         Reference = factor(Reference, levels = ord_mcategory, labels = ord_mcategory))%>% 
+  #rename some labels for the paper figure
+   mutate(Prediction = recode(Prediction, "Suicidality" = "Suicidal", "Werther" = "Suicide cases"), 
+          Reference = recode(Reference, "Suicidality" = "Suicidal", "Werther" = "Suicide cases"))
+plot_count = ggplot(main_confusion_matrix_count, aes(Prediction, Reference, fill = Freq)) +
+  geom_tile() +
+  geom_text(aes(label = (Freq))) +
+  scale_fill_gradient(low = "white", high = "#3575b5") +
+  labs(x = "Prediction", y = "", fill = "Percent") + theme_bw()+
+  theme(plot.title = element_text(size = 25, hjust = 0.5, 
+                                  margin = margin(20, 0, 20, 0)),
+        legend.title = element_text(size = 14, margin = margin(0, 20, 10, 0)),
+        axis.title.x = element_text( size = 18), #margin = margin(20, 20, 20, 20),
+        axis.title.y = element_text(size = 18), #margin = margin(0, 20, 0, 10), 
+        axis.text=element_text(size=14), 
+        axis.text.x = element_text(angle = 45,  hjust=1), 
+        legend.position = "none")
 
-```{r}
-x = d %>% 
-  filter(true_label=="Werther")
-as.data.frame(xtabs(~predicted_label, x)) %>% 
-  arrange(desc(Freq))
+# ggsave('../figures/Main_category_confusion_matrix.pdf', width=6.7, height=5, dpi=300)
+ggarrange(plotpercent, plot_count,  common.legend = TRUE, legend = "none", labels = c("a", "b"), font.label = list(size = 16))
 ```
 
-## Check Werther misclassifications as suicide other
-```{r}
-p = as.data.frame(x%>% 
-  filter(predicted_label=="Suicide_other") %>% 
-  select(-c(true_label, predicted_label)))
-  
-p %>% 
-  mutate(no = 1:n()) %>% 
-  relocate(no, .before=text) %>% 
-  select(no, text)
+  In general, misclassifications as irrelevant are less severe than other confusions, because we prioritize precision (correct predictions for relevant classes) over recall (detecting all true examples). There are two major cases of misclassification between relevant categories: coping tweets get misclassified as suicidal and vice versa, and awareness tweets get misclassified as suicide cases or prevention tweets. The suicidal vs. coping confusion results from.
 
-p %>% 
-  mutate(no = 1:n()) %>% 
-  relocate(no, .before=text) %>% 
-  select(-text)
-  
-```
 
-* 3 of these tweets express doubt: "did he suicide? single car crash...", "i also have questions", "...to just overdose by accident"
-* 2 of them are suicide by cop, and one mentions the word homicide, that usually goes into suicide_other
-* "Boyfriend of suicide student... " mentions an assault
-* one tweet says "not kill" in a rhetoric question
-* "I dont support suicide in any way" is quite indirectly referring to a suicide, only with "rip"
-
-It could be that it is words like accident, assault, homicide, not kill, don't support that make the model predict that it is not about suicide. These errors are ok, not stupid. 
-
-## Check Werther misclassification as off-topic
-
-These are actually quite obvious Werther tweets. 
-
-```{r}
-p = as.data.frame(x%>% 
-  filter(predicted_label=="Off-topic") %>% 
-  select(-c(true_label, predicted_label))) 
-
-p %>% 
-  mutate(no = 1:n()) %>% 
-  relocate(no, .before=text) %>% 
-  select(no, text)
-
-p %>% 
-  mutate(no = 1:n()) %>% 
-  relocate(no, .before=text) %>% 
-  select(-text)
-```
-
-  
-  
 # Suicidality
 
-True Suicidality tweets are misclassified mostly with Off-topic and Suicide_other, few Coping. 
 
 ```{r}
 x = d %>% 
   filter(true_label=="Suicidality")
-as.data.frame(xtabs(~predicted_label, x))%>% 
-  arrange(desc(Freq))
+# as.data.frame(xtabs(~prediction, x))%>% 
+#   arrange(desc(Freq))
 ```
-
-## Check Suicidality misclassification as off-topic
-
-```{r}
-p=as.data.frame(x%>% 
-  filter(predicted_label=="Off-topic") %>% 
-  select(-c(true_label, predicted_label)))
-
-p %>% 
-  mutate(no = 1:n()) %>% 
-  relocate(no, .before=text) %>% 
-  select(no, text)
-
-p %>% 
-  mutate(no = 1:n()) %>% 
-  relocate(no, .before=text) %>% 
-  select(-text)
-```
-
-Of 7 off-topic miscalssifications: 
-
-  * 1 is confused because of "suicidal doors" which is usually off-topic, this error is ok.  
-  * 2 not clearly suicidal, the model is right: 
-      - when ur significant other is depressed n crying in a suicidal rage but ur on 12 grams of pcp & life is a cartoon http
-      - somebody said knicks on suicide watch : loudly crying face
-  * 4 are clearly correct suicidality tweets, the model is wrong
-  
-## Check Suicidality misclassification as suicide_other
-
-```{r}
-p=as.data.frame(x%>% 
-  filter(predicted_label=="Suicide_other") %>% 
-  select(-c(true_label, predicted_label)))
-
-p %>% 
-  mutate(no = 1:n()) %>% 
-  relocate(no, .before=text) %>% 
-  select(no, text)
-
-p %>% 
-  mutate(no = 1:n()) %>% 
-  relocate(no, .before=text) %>% 
-  select(-text)
-```
-**Of 6 misclassifications:**
-
-* All are understandable errors. Negotiations of suicide, or talking about someone else being suicidal/contemplating suicide, or include some unrelated emojis
-* 1 says "no suicide type shit" - hard for the model
 
 ## Check Suicidality misclassification as Coping
 
 ```{r}
 p=as.data.frame(x%>% 
-  filter(predicted_label=="Coping") %>% 
-  select(-c(true_label, predicted_label)))
+  filter(prediction=="Coping"))
+#print the text only
 p %>% 
   mutate(no = 1:n()) %>% 
   relocate(no, .before=text) %>% 
   select(no, text)
 
+#print the labels only
 p %>% 
   mutate(no = 1:n()) %>% 
   relocate(no, .before=text) %>% 
-  select(-text)
+  select(-text) %>% 
+  select(no, category.hannah, category.thomas, prediction)
 ```
-**Of 4 misclassifications:**
 
-* 1 understanable because one includes the word "better", 
-* Nr 2 is not clear, maybe past suicidality, coping only implied.  
-* 3 could actually be coping, I have corrected this one in the newest training set from 20201126. 
-* In total 1 wrong, 2 understandable, and 1 times the model is right. 
+**Of 13 misclassifications of suicidal as coping tweets:**
+
+* 4 also classified as coping by the second coder, in 3 of those cases, the model and coder 2 are actually right. 
+* The model might also be right in no 2, 4
+* Only 2 are clearly suicidal (no 6, 10), all others are ambiguous. 
+* 8 are formulated in the past tense, meaning the suicidal phase could already be over, and the model could be right
+* Model right: 5 times for sure.   
 
 
 # Coping
@@ -198,16 +143,16 @@ True Coping tweets are misclassified mostly with suicidality.
 ```{r}
 x = d %>% 
   filter(true_label=="Coping")
-as.data.frame(xtabs(~predicted_label, x))%>% 
-    arrange(desc(Freq))
+# as.data.frame(xtabs(~prediction, x))%>% 
+    # arrange(desc(Freq))
 ```
 
 ## Check Coping misclassification as suicidality
 
 ```{r, tab.width=0.7}
 p = as.data.frame(x%>% 
-  filter(predicted_label=="Suicidality") %>% 
-  select(-c(true_label, predicted_label)))
+  filter(prediction=="Suicidality") %>% 
+  select(-c(true_label, prediction)))
 p %>% 
   mutate(no = 1:n()) %>% 
   relocate(no, .before=text) %>% 
@@ -217,18 +162,126 @@ p %>%
   relocate(no, .before=text) %>% 
   select(-text)
 ```
+1 in the past
+2 expresses sadness - model error
+3 about the past - model error
+4 is really ambiguous
+5 is about the past - model error
+6 is about the past - model error
+7 expresses suicidal thoughts, but less than before - model error
+8 expresses suicidal thougths but determination not to act - model error
+9 ambiguous
+10 model error
+11 model error, joke
+12 model error
+13 model error
+14 model error, ambiguous
+15 ambiguous
+16 very ambiguous, coping through medication only
+17 past, model error
 
-**Of 9 misclassifications:**
+* Coder 2 disagrees with coping label of coder 1 in 6 out of 17 cases. 
+* 5 tweets are about the past, these are hard to get for the model
+* 12 are actual errors by the model
+* Around 6 are quite ambiguous, understandable errors. 
 
-* Good reasons for misclassification:
-    - Nr 1: model misses the word "before" (i thought i was suicidal before http)
-    - Nr 9: pretty suicidal, could be both categories, added in training set 1126 
-    - Nr 2: 1 is actually unclear, could be suicidal but also mentions hope
-    - Nr 3: is partially ironic, but then clarifies
-    - Nr 5/6 contains the words "suicidal thoughts"
-* How many of these are past *suicidal thoughts*? Nr 1, 4, 7
 
-How many of the coping tweets are past suicidal thoughts? 3 out of `r xtabs(~ambiguous, train)["pastsuicidality"][[1]]` are not many. Would be interesting to know where the other 28 went (once I have a dataset with predictions and IDs I can match the tweets and check). But this speaks for leaving them with Coping for now. 
+# Awareness 
+
+
+```{r}
+x = d %>% 
+  filter(true_label=="Awareness")
+x
+# as.data.frame(xtabs(~prediction, x))%>% 
+#   arrange(desc(Freq))
+```
+
+## Check Awareness misclassification as prevention
+
+```{r, tab.width=0.7}
+p = as.data.frame(x%>%
+  filter(prediction=="Prevention") %>% 
+  select(-c(true_label, prediction)))
+p %>% 
+  mutate(no = 1:n()) %>% 
+  relocate(no, .before=text) %>% 
+  select(no, text)
+
+p %>% 
+  mutate(no = 1:n()) %>% 
+  relocate(no, .before=text) %>% 
+  select(-text)
+```
+
+**Of 7 misclassifications as prevention:**
+
+* 4 also classified as prevention by coder 2, all of them are actually prevention, not awareness, i.e. errors by coder 1. (No 2, 5, 6, 7)
+* 3 others are ambiguous, not enough information to be clear. 
+    
+# Prevention 
+
+
+```{r}
+x = d %>% 
+  filter(true_label=="Prevention")
+
+# as.data.frame(xtabs(~prediction, x))%>% 
+#   arrange(desc(Freq))
+```
+
+## Check Awareness misclassification as Suicide other
+
+```{r, tab.width=0.7}
+p = as.data.frame(x%>%
+  filter(prediction=="Prevention") %>% 
+  select(-c(true_label, prediction)))
+p %>% 
+  mutate(no = 1:n()) %>% 
+  relocate(no, .before=text) %>% 
+  select(no, text)
+
+p %>% 
+  mutate(no = 1:n()) %>% 
+  relocate(no, .before=text) %>% 
+  select(-text)
+```
+
+**Of 16 misclassifications:**
+
+* no 2, 7 ambiguous
+* errors: 1, 3, 4, 5, 6, 8, 10, 11, 12, 13, 14, 15
+* model right: 9
+
+
+\newpage
+
+# Suicide cases 
+
+```{r}
+x = d %>% 
+  filter(true_label=="Werther")
+```
+
+## Check misclassifications as awareness
+
+```{r, tab.width=0.7}
+p = as.data.frame(x%>%
+  filter(prediction=="Awareness") %>% 
+  select(-c(true_label, prediction)))
+p %>% 
+  mutate(no = 1:n()) %>% 
+  relocate(no, .before=text) %>% 
+  select(no, text)
+
+p %>% 
+  mutate(no = 1:n()) %>% 
+  relocate(no, .before=text) %>% 
+  select(-text)
+```
+* Error: 1, 3, 4, 6, 7, 11, 12, 13, 14, 15, 17
+* model right: 2, 9, 
+* Ambiguous: 5, 8, 10, 16
 
 
 # Suicide Other
@@ -236,18 +289,36 @@ How many of the coping tweets are past suicidal thoughts? 3 out of `r xtabs(~amb
 True Suicide_other tweets are misclassified mostly as off-topic and Werther, and a bit as awareness and suicidality. 
 
 ```{r}
-x = d %>% 
-  filter(true_label=="Suicide_other")
-as.data.frame(xtabs(~predicted_label, x)) %>% 
-  arrange(desc(Freq))
+d1 = d
+d1$prediction = factor(d1$prediction, levels = c(levels(d$prediction), "bereaved_coping" ,  "bereaved_negative",   "news_coping",    "news_suicidality", "suicide_other",  "off-topic"))
+
+matrix12 = as.data.frame(round(prop.table(table(d1$category.hannah, d1$prediction), margin = 1), 2)[,c(1:6)])
+  
+ggplot(matrix12, aes(Var2, Var1, fill = Freq)) +
+  geom_tile() +
+  geom_text(aes(label = scales::percent(Freq))) +
+  scale_fill_gradient(low = "white", high = "#3575b5") +
+  labs(x = "Prediction", y = "True Label", fill = "Percent") + theme_bw()+
+  theme(plot.title = element_text(size = 25, hjust = 0.5, 
+                                  margin = margin(20, 0, 20, 0)),
+        legend.title = element_text(size = 14, margin = margin(0, 20, 10, 0)),
+        axis.title.x = element_text( size = 18), #margin = margin(20, 20, 20, 20),
+        axis.title.y = element_text(size = 18), #margin = margin(0, 20, 0, 10), 
+        axis.text=element_text(size=14), 
+        axis.text.x = element_text(angle = 45,  hjust=1))
 ```
+
+* Bereaved tweets, which necessarily contain a suicide case, were often misclassified as Werther. Also often classified as coping, so at least the personal story aspect was recognized. 
+* All tweets about lives saved were misclassified as awareness. 
+* News coping tweets were misclassified as prevention. 
+
 
 ## Check Suicide Other misclassification as Off-topic
 
 ```{r, tab.width=0.7}
 p = as.data.frame(x%>% 
-  filter(predicted_label=="Off-topic") %>% 
-  select(-c(true_label, predicted_label)))
+  filter(prediction=="Off-topic") %>% 
+  select(-c(true_label, prediction)))
 p %>% 
   mutate(no = 1:n()) %>% 
   relocate(no, .before=text) %>% 
@@ -271,8 +342,8 @@ p %>%
 
 ```{r, tab.width=0.7}
 p = as.data.frame(x%>% 
-  filter(predicted_label=="Werther") %>% 
-  select(-c(true_label, predicted_label)))
+  filter(prediction=="Werther") %>% 
+  select(-c(true_label, prediction)))
 p %>% 
   mutate(no = 1:n()) %>% 
   relocate(no, .before=text) %>% 
@@ -296,8 +367,8 @@ Result: misclassifications as awareness are mostly personal opinions, that shoul
 
 ```{r, tab.width=0.7}
 p = as.data.frame(x%>% 
-  filter(predicted_label=="Awareness") %>% 
-  select(-c(true_label, predicted_label)))
+  filter(prediction=="Awareness") %>% 
+  select(-c(true_label, prediction)))
 p %>% 
   mutate(no = 1:n()) %>% 
   relocate(no, .before=text) %>% 
@@ -316,8 +387,8 @@ p %>%
 
 ```{r, tab.width=0.7}
 p = as.data.frame(x%>% 
-  filter(predicted_label=="Suicidality") %>% 
-  select(-c(true_label, predicted_label)))
+  filter(prediction=="Suicidality") %>% 
+  select(-c(true_label, prediction)))
 p %>% 
   mutate(no = 1:n()) %>% 
   relocate(no, .before=text) %>% 
@@ -333,205 +404,3 @@ p %>%
 * 4 Understandable: 1, 3 (fiction), 4 (irony), 5 (exaggeration)
 * 2 Wrong: 2, 6 
 
-# Off-topic
-
-True Off-topic tweets are misclassified mostly as suicide_other, suicidality and Werther. 
-
-```{r}
-x = d %>% 
-  filter(true_label=="Off-topic")
-as.data.frame(xtabs(~predicted_label, x))%>% 
-  arrange(desc(Freq))
-```
-
-## Check Off-topic misclassification as Suicidality
-
-```{r, tab.width=0.7}
-p = as.data.frame(x%>% 
-  filter(predicted_label=="Suicidality") %>% 
-  select(-c(true_label, predicted_label)))
-p %>% 
-  mutate(no = 1:n()) %>% 
-  relocate(no, .before=text) %>% 
-  select(no, text)
-p %>% 
-  mutate(no = 1:n()) %>% 
-  relocate(no, .before=text) %>% 
-  select(-text)
-```
-
-**Of 21 misclassifications:**
-
-* 5 not clear if serious: 4, 5, 8, 15, 21 (maybe the model was right for number 15)
-* 10 exaggerations: 1, 2, 3, 6, 9, 10, 12, 13, 18, 20
-* 4 jokes: 6, 14, 16, 19
-* 1 song/band names with suicide or suicidal: 11
-* 1 other reason: 17
-* **Taken together, 19 of the 21 false predictionas as suicidality are unclear (these are acceptable errors), exaggerations and jokes.** In total, there are  `r xtabs(~ambiguous, train)[c("exaggeration")][[1]]` exaggerations. We did not specifically label jokes about suicide. (The keyword joke in the column ambiguous indicates that people tell others not to joke about suicide, but does not indicate a joke being made.) We can, however, see how many of the tweets labelled as not serious (i.e. funny) or unclear are unlabelled, and thereby exclude metaphors and exaggerations. There are a total of `r nrow(filter(train, Category=="off-topic" & notserious_unclear==1 & ambiguous!="metaphor"))` tweets that are either jokes or not clearly understandable as serious, or off-topic in some other way (band name, songs, etc).  
-    - the model got 10/80 exaggerations wrong - 10% error is ok
-    - if we conservatively estimate that 1/4th of the tweets that are not labeled in the column ambiguous are either jokes or not clearly serious, the model got 9 of 60 wrong - 15% error is again ok. 
-
-## Check Off-topic misclassification as Suicide other
-
-```{r, tab.width=0.7}
-p = as.data.frame(x%>% 
-  filter(predicted_label=="Suicide_other") %>% 
-  select(-c(true_label, predicted_label)))
-p %>% 
-  mutate(no = 1:n()) %>% 
-  relocate(no, .before=text) %>% 
-  select(no, text)
-p %>% 
-  mutate(no = 1:n()) %>% 
-  relocate(no, .before=text) %>% 
-  select(-text)
-```
-
-**Of 30 misclassifications:**
-
-* 3 assisted suicide: 1, 11, 30
-* song/band names: 3, 8
-* metaphors like suicide jump, suicide girl: 15, 19
-* 7 exaggerations (the seapration from suicide other is not clear here, exaggerations can be either funny or not, hard to judge): 2, 17, 18 (was probably judged as off-topic because it might be a metaphor for a positive feeling), 23, 24, 5, 9
-* doubts about or negation of a suicide are expressed: fake suicides, not a suicide, murder or suicide? etc: 20, 9
-* animals dying: 4
-* model might be right: 21, 27, 23, 24, 2, 6
-
-My take aways: 
-
-* the separation suicide other vs. off-topic is (1) not important for us and (2) not easy. 
-    - I saw many exaggerations as jokes, and therefor defined as off-topic, but they are also somehow about suicide, a suicidal person might care about them. 
-    - same for animals "comitting suicide" - such a message might negatively affect a person at risk of suicide
-    - Some things could possibly clearly be filtered out without and ML model: assisted suicide & euthansia, song and band names if they cannot be confused with actual suicidality (suicide silence works, while suicidal tendencies does not, but we could filter for "band, song, conncert", suicide jump, suicide doors, suicide girl, suicide boy
-    - Other filters that make sense but were not excluded here: suicide attack, suicide bomb
-    - exclusions we could make in addition: murder-suicide, homicide
-* I think we can just combine the two categories suicide_other and off-topic for these 2 reasons. 
-
-
-## Check Off-topic misclassification as Werther
-
-```{r, tab.width=0.7}
-p = as.data.frame(x%>% 
-  filter(predicted_label=="Werther") %>% 
-  select(-c(true_label, predicted_label)))
-p %>% 
-  mutate(no = 1:n()) %>% 
-  relocate(no, .before=text) %>% 
-  select(no, text)
-p %>% 
-  mutate(no = 1:n()) %>% 
-  relocate(no, .before=text) %>% 
-  select(-text)
-```
-**Of 10 misclassifications:**
-* 5 contain the words "committed suicide" or "killed herself/himself" or "deaths" or "killed + suicidal": 1, 2, 5, 6, 9
-* 5 Clearly wrong predictions: 1, 2, 3, 8, 9
-* 2 Jokes, not serious: 5, 6
-* 4 understandable errors: 4, 5, 6, 10
-* 1 time the model is right: 7
-* 1 Suicide by cop: 10
-* **5 of 10 errors are ok**. 
-* Many errors contain a keyword combination that often classifies as Werther, these errors are probably not avoidable, and they are few. 
-
-
-
-
-# Prevention
-Results are good - nothing to do. 
-
-# Awareness 
-
-Not many misclassifications either. Largest groups are suicide other and prevention. 
-
-```{r}
-x = d %>% 
-  filter(true_label=="Awareness")
-as.data.frame(xtabs(~predicted_label, x))%>% 
-  arrange(desc(Freq))
-```
-
-## Check Awareness misclassification as Suicide other
-
-```{r, tab.width=0.7}
-p = as.data.frame(x%>%
-  filter(predicted_label=="Suicide_other") %>% 
-  select(-c(true_label, predicted_label)))
-p %>% 
-  mutate(no = 1:n()) %>% 
-  relocate(no, .before=text) %>% 
-  select(no, text)
-
-p %>% 
-  mutate(no = 1:n()) %>% 
-  relocate(no, .before=text) %>% 
-  select(-text)
-```
-
-**Of 8 misclassifications:**
-
-* 6 times, the model is right or understandable, because these are opinions more than expressions of the intention to help to the general population: 2, 3, 4, 7, 6, maybe also 5 could be seen as personal experience/strategy
-* 2: only 1 and 8 are relatively clear awareness tweets, but also not typical awareness tweets
-* I have corrected Category to "suicide other" and category2 to awareness in the training set 20201126: 
-    2. i feel that the video that
-    3. if i hear one more person tell me their significant other said... 
-    4. * any * suicide is a tragedy . jesus christ , people. 
-    6. . i been talking about depression and suicide...
-    7. i'm actually shaking why...
-    
-## Check Awareness misclassification as Prevention
-
-```{r, tab.width=0.7}
-p = as.data.frame(x%>%
-  filter(predicted_label=="Prevention") %>% 
-  select(-c(true_label, predicted_label)))
-p %>% 
-  mutate(no = 1:n()) %>% 
-  relocate(no, .before=text) %>% 
-  select(no, text)
-
-p %>% 
-  mutate(no = 1:n()) %>% 
-  relocate(no, .before=text) %>% 
-  select(-text)
-```
-
-**Of 6 misclassifications:**
-
-* model right: 1, 6 - corrected in 20201126 training set
-* model wrong: 2, 5
-* understandable errors, hard to judge what is correct: 3, 4
-
-
-\newpage
-
-# Summary and conclusions:
-
-* Werther: 
-    - True Werther tweets are misclassified with mostly the suicide_other category. These errors are understandable, as these tweets express doubt, contain words like assault, accident, homicide or not+kill, or indirectly refer to suicide with RIP.  
-    - Werther tweets misclassified as off-topic are obvious Werther tweets, but the error is rare (6 out of 99 Werter tweets).
-* Suicidality tweets are misclassified mostly with Off-topic and Suicide_other, few Coping. 
-    - at least half of the errors are understandable/not stupid
-* Coping: 
-    - True Coping tweets are misclassified mostly with suicidality.
-    - Some past suicidal thoughts get misclassified as suicidality, but 3 out of 31 total past suicidality tweets are not many. Would be interesting to know where the other 28 went. But this speaks for leaving them with Coping for now.
-* Suicide Other: 
-    - Murder-suicides or the word homicide are often not recognized by the model (at least 7 cases) and misclassified as Werther. But since there were many more, it is not a real issue.
-    - Misclassifications as awareness are mostly personal opinions, that should be classified as suicide_other. 
-    - Model sometimes confuses irony, fiction or exaggerations that are not serious with actual suicidality tweets (e.g. 4 tweets from suicide_other that got misclassified)
-* Off-topic: 
-    - Almost all misclassifications of Off-topic tweets as Suicidality tweets are either jokes ("i just attempted suicide . i'm never doing that again . i almost killed myself!"), exaggerations ("I forgot how suicidal maths makes me feel", or can't be clearly judged as seriously suicidal ("@user i am blogging my inevitable suicide . it's taking longer than i thought. http http"). While the errors with unclear tweets are acceptable, the others are unfortunate, but make up for only 10-15% of errors, which is acceptable. 
-    - Misclassifications as suicide other are few in comparison to how many tweets of these 2 categories exist, and are not important for our hypothesis. We can therefore merge the categories for the time series analysis with multiple groups. We could perform one analysis based on model predictions as off-topic vs. suicide other, to examine the total volume of tweets that are actually about suicide. 
-* Awareness: performance is overall quite alright
-    - only 2/8 awareness tweets classified as suicide other are relatively clear (but also not typical) awareness tweets. In all other cases the model is right. Should I correct these in the training set?
-    - only 2/6 misclassifications as Prevention are clearly errors
-
-    
-# Decide where we put the coping and negative tweets that are not personal stories, but news or bereaved
-
-Based on labels in training set 20201124:
-
-* Most bereaved coping tweets are not overly positive, but quite realistic. Hard to judge the impact on a suicidal person, probably positive, but this is not certain. I would put them to suicide other. 
-* Bereaved negative: only decision is about whether we want to place them in Werther if they describe a case. I would say no, because the language is really different. I doubt the effect would be the same on individuals at risk, it might touch them more emotionally, and it is unclear what the effect would be. 
-* News coping tweets: are really different from personal coping stories, they often only describe what the article will be about ("a powerful lesson x learnt from her suicide attempt"), but do not express any emotion yet - put them to suicide other. 
-* News suicidality tweets: are often in 3rd person about suicide attempts, with language very similar to Werther about suicide cases. Some few cases about suicide "threats" or other weird stories linked to suicidal behavior. Very few about celebrities saying they were suicidal or contemplated suicide. I don't think we lose anything by putting them into suicide other. The only reasonable thing would be to place tweets about attempts together with Werther, if we want that due to our hypotheses. 
-* Life saved: no clear hypotheses, therefore put to suicide other. 
