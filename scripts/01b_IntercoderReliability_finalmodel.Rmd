@@ -86,7 +86,7 @@ dt4 <- read.csv('../reliability_datasets/round4_150x5_suicide_Thomas_complete_ID
 # 
 # #empty labels saved in this dataset, it was mostly focus labels missing, completed
 # d = dt4 %>% filter(emptycategory == TRUE | emptyfocus == TRUE | emptynotserious == TRUE)
-# # write.csv2(file="../output/empty_labels_reliability_round4_Thomas.csv",d, row.names=F)
+# # write.csv2(file="../results/empty_labels_reliability_round4_Thomas.csv",d, row.names=F)
 
 
 #rename x in all category columns to the name of the category, so they can all be merged into one column next
@@ -208,6 +208,8 @@ levels(d4$category.thomas)
 
 # How many true labels do we have per category? 
 
+In total: `r nrow(db4)`
+
 Bert's labels: 
 
 ```{r}
@@ -227,13 +229,13 @@ xtabs(~main_category, dt4)
 ```
 
 ```{r, missing data}
-#join missing labels and duplicate labels with new awareness tweet candidates
-missing_ids = read.csv("../output/empty_labels_reliability_round4_Thomas.csv", colClasses = "character")$id
-dupe_ids = c("994362285744443392", "1173390237801820161", "613152024935460864")
-d = d4 %>% 
-  filter(id %in% dupe_ids | id %in% missing_ids) %>% 
-  select( c("id", "category.thomas", "focus.thomas", "notserious_unclear.thomas", "notes.thomas", "text"))
-write.table(file="../output/labels_thomas_missing_duplicates.tsv", d, sep="\t", row.names = F)
+# #join missing labels and duplicate labels with new awareness tweet candidates - thomas has now provided these missing labels
+# missing_ids = read.csv("../results/empty_labels_reliability_round4_Thomas.csv", colClasses = "character")$id
+# dupe_ids = c("994362285744443392", "1173390237801820161", "613152024935460864")
+# d = d4 %>% 
+#   filter(id %in% dupe_ids | id %in% missing_ids) %>% 
+#   select( c("id", "category.thomas", "focus.thomas", "notserious_unclear.thomas", "notes.thomas", "text"))
+# write.table(file="../results/labels_thomas_missing_duplicates.tsv", d, sep="\t", row.names = F)
 
 ```
 
@@ -349,8 +351,8 @@ byclass = data.frame(
 )
 #order by metric
 byclass = byclass[ order((row.names(byclass))), ]
-
-# write.csv(file = "../output/inter-rater-reliability.csv", byclass)
+byclass
+# write.csv(file = "../results/inter-rater-reliability.csv", byclass)
 ```
 
 ```{r, save dataset with predictions and human labels}

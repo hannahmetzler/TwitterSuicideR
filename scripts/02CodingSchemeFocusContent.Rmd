@@ -41,8 +41,7 @@ as.data.frame(xtabs(~Category, data=totaltrain))
 ```
 
 - It looks like Coping1/3 and Suicidality1/3 will have to be combined, respectively. 
-- Life saved not enough for Machine learning. Maybe add it to news_coping and rename to news_positive?
-- Could we combine all news with personal stories, and just code news vs. not news in an additional column?
+- Life saved not enough for Machine learning. 
 
 
 Do all categories have the right focus coded?
@@ -69,8 +68,9 @@ as.data.frame(xtabs(~notserious_unclear+Category, data=totaltrain))
 # Frequency of categories in a random sample of 1000 tweets
 
 How many tweets per category (all small categories included)? 
+
 ```{r}
-as.data.frame(xtabs(~Category, data=rs))
+prop.cat = as.data.frame(xtabs(~Category, data=rs))
 
 #define the order for factor levels
 ord_category <- c( "Suicidality1","Suicidality3","Coping1", "Coping3", "News_coping", "News_suicidality", "Bereaved_negative", "Bereaved_coping","Awareness", "Prevention",  "Werther", "Life_saved", "Suicide_other","Off-topic")
@@ -82,7 +82,7 @@ coded = rs %>%
                            News_coping = "Coping", News_suicidality = "Suicidality"))
 ```
 
-Tweets per category. Total number of tweets n=`r sum(prop.comb$n,2)`. 
+Total number of tweets n=`r sum(prop.cat$Freq,2)`. 
 
 Proportion of tweets per small category
 ```{r}
@@ -97,7 +97,8 @@ prop.cat <- as.data.frame(coded %>%
 prop.cat
 ```
 
-Tweets per category if 1st and 3rd person perspective are combined for Coping and Suicidality, and news coping and news suicidality classes included as well. Total number of tweets n=`r sum(prop.comb$n,2)`.  
+Tweets per category if 1st and 3rd person perspective are combined for Coping and Suicidality, and news coping and news suicidality classes included as well. Total number of tweets n=`r sum(prop.cat$n,2)`.  
+
 ```{r}
 #proportion with combined categories
 prop.comb <- as.data.frame(coded %>%

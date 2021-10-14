@@ -90,12 +90,11 @@ plot_count = ggplot(main_confusion_matrix_count, aes(Prediction, Reference, fill
         axis.text=element_text(size=14), 
         axis.text.x = element_text(angle = 45,  hjust=1), 
         legend.position = "none")
-
-# ggsave('../figures/Main_category_confusion_matrix.pdf', width=6.7, height=5, dpi=300)
 ggarrange(plotpercent, plot_count,  common.legend = TRUE, legend = "none", labels = c("a", "b"), font.label = list(size = 16))
+ ggsave('../figures/Main_category_confusion_matrix.pdf', width=10, height=5, dpi=300)
 ```
 
-  In general, misclassifications as irrelevant are less severe than other confusions, because we prioritize precision (correct predictions for relevant classes) over recall (detecting all true examples). There are two major cases of misclassification between relevant categories: coping tweets get misclassified as suicidal and vice versa, and awareness tweets get misclassified as suicide cases or prevention tweets. The suicidal vs. coping confusion results from.
+In general, misclassifications as irrelevant are less severe than other confusions, because we prioritize precision (correct predictions for relevant classes) over recall (detecting all true examples). There are two major cases of misclassification between relevant categories: coping tweets get misclassified as suicidal and vice versa, and awareness tweets get misclassified as suicide cases or prevention tweets. The suicidal vs. coping confusion results from.
 
 
 # Suicidality
@@ -135,10 +134,56 @@ p %>%
 * 8 are formulated in the past tense, meaning the suicidal phase could already be over, and the model could be right
 * Model right: 5 times for sure.   
 
+## Check Suicidality misclassifications to see how large the confusion with non serious tweets is
+
+How many predicted labels per category were labelled as not serious by Coder 1? They should all belong to the category irrelevant, but are quite often assigned to the suicidal category. 
+
+```{r}
+round(prop.table(xtabs(~notserious_unclear.hannah+prediction, d), margin=1),2)
+```
+How many tweets per predicted category are not serious or unclear? 
+
+```{r}
+round(prop.table(xtabs(~notserious_unclear.hannah+prediction, d), margin=2),2)
+```
+
+Of tweets with the predicted label suicidality, look at those that are not serious or unclear :
+
+```{r}
+p = as.data.frame(d %>% 
+  filter(prediction=="Suicidality") %>% 
+  filter(notserious_unclear.hannah=="1"))
+#print the text only
+p %>% 
+  mutate(no = 1:n()) %>% 
+  relocate(no, .before=text) %>% 
+  select(no, text)
+
+#print the labels only
+plabels = p %>% 
+  mutate(no = 1:n()) %>% 
+  relocate(no, .before=text) %>% 
+  select(-text) %>% 
+  select(no, prediction, category.hannah, notes.hannah)
+plabels
+```
+
+Which kind of non-serious tweet are these 13 misclassifications?
+
+```{r}
+plabels$notes.hannah[4]= "not suicidal"
+#11 also seems more like an exaggeration or sarcasm than unclear if serious
+plabels$notes.hannah[11]= "sarcasm"
+#6 is a comment about weed not making suicidal, this is not actually sarcasm
+plabels$notes.hannah[6]= "not suicidal"
+xtabs(~notes.hannah, plabels)
+```
+
+
 
 # Coping
 
-True Coping tweets are misclassified mostly with suicidality. 
+True Coping tweets are misclassified mostly as suicidality. 
 
 ```{r}
 x = d %>% 

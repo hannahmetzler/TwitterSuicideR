@@ -65,10 +65,13 @@ d <- d %>%
   mutate(category = recode(category_details, coping1 = "coping", coping3 = "coping", suicidality1 = "suicidality", suicidality3 = "suicidality")) %>% 
   #order the categories
   mutate(category = factor(category, levels = ord_category, labels = ord_category),
-         category_details = factor(category, levels = ord_category_details, labels = ord_category_details),
+         category_details = factor(category_details, levels = ord_category_details, labels = ord_category_details),
          main_category = factor(main_category, levels = ord_mcategory, labels = ord_mcategory),
+         #label the categories
          about_suicide = factor(about_suicide, levels = c(0,1), labels = c("no", "yes")),
-         notserious_unclear = factor(notserious_unclear, levels = c(0,1), labels = c("no", "yes")))
+         notserious_unclear = factor(notserious_unclear, levels = c(0,1), labels = c("no", "yes")), 
+         type = factor(type, levels = c(0:5), labels = c("irrelevant", "personal experience", "bereaved experience", "case report", "call for action", "news about experiences")), 
+         focus = factor(focus, levels = c(0:2), labels = c("neither", "problem", "coping")))
 ```
 
 
@@ -89,6 +92,13 @@ d = d %>%
 
 ```
 
+# Total sample size
+
+```{r}
+nrow(d)
+```
+
+
 # Time span across which tweets in training set were originally posted
 ```{r}
 ggplot(d, aes(x=date))+
@@ -97,7 +107,7 @@ d %>%
   group_by(lubridate::year(date)) %>% 
   summarise(nyear = n()) %>% 
   ungroup()
-  ```
+```
 
 First and last date
 
@@ -130,7 +140,7 @@ prop.main <- as.data.frame(d %>%
                              group_by(main_category) %>%
                              summarise (n = n()) %>%
                              mutate(freq = n / sum(n))) 
-# write.table(prop.main,'output/tweets_per_maincategory_finaltrainingsample_20210104.tsv', sep='\t', row.names=F)
+# write.table(prop.main,'results/tweets_per_maincategory_finaltrainingsample_20210104.tsv', sep='\t', row.names=F)
 prop.main
 ```
 ### Proportions
@@ -145,9 +155,9 @@ plot.prop.cat<- ggplot(prop.cat, aes(x=category, y = freq, fill=category)) + #da
   scale_fill_manual(values=c("#332288", "#88CCEE", "#44AA99", "#117733", '#999933', '#DDCC77', '#CC6677', "#882255", "#332288", "#88CCEE", "#44AA99", "#AA4499", "#999999",  "#444444"))+
   theme_bw() +  
   theme(axis.text.x = element_text(angle = 45, hjust=1), legend.position="none", text=element_text(size=s))
-plot.prop.smallcat<- ggplot(subset(prop.cat, freq <0.08), aes(x=category, y = freq, fill=category)) + #dataset and variables to plot
+plot.prop.smallcat<- ggplot(subset(prop.cat, freq <8), aes(x=category, y = freq, fill=category)) + #dataset and variables to plot
   geom_bar(stat="identity")+
-  ggtitle("Minority classes in training sample > 0.08")+
+  ggtitle("Minority classes in training sample > 8%")+
   labs(y="Proportion", x="") + #axes and title labels
   scale_fill_manual(values=c("#332288", "#88CCEE", "#44AA99", "#117733", '#999933', '#DDCC77', '#CC6677', "#882255", "#AA4499"))+
   theme_bw() +  
@@ -167,7 +177,7 @@ plot.n.cat<- ggplot(prop.cat, aes(x=category, y = n, fill=category)) + #dataset 
   scale_fill_manual(values=c("#332288", "#88CCEE", "#44AA99", "#117733", '#999933', '#DDCC77', '#CC6677', "#882255", "#332288", "#88CCEE", "#44AA99", "#AA4499", "#999999",  "#444444"))+
   theme_bw() +  
   theme(axis.text.x = element_text(angle = 45, hjust=1), legend.position="none", text=element_text(size=s))
-plot.n.smallcat<- ggplot(subset(prop.cat, freq <0.08), aes(x=category, y = n, fill=category)) + #dataset and variables to plot
+plot.n.smallcat<- ggplot(subset(prop.cat, freq <8), aes(x=category, y = n, fill=category)) + #dataset and variables to plot
   geom_bar(stat="identity")+
   ggtitle("Minority classes in training sample n > 250")+
   labs(y="n tweets", x="") + #axes and title labels
@@ -216,7 +226,7 @@ prop.about <- as.data.frame(d %>%
                              summarise (n = n()) %>%
                              mutate(freq = n / sum(n))) %>% 
   ungroup()
-# write.table(prop.about,'output/tweets_per_aboutsuicide_finaltrainingsample_20210104.tsv', sep='\t', row.names=F)
+# write.table(prop.about,'results/tweets_per_aboutsuicide_finaltrainingsample_20210104.tsv', sep='\t', row.names=F)
 prop.about
 ```
 
@@ -259,9 +269,28 @@ plot.prop.serious<- ggplot(prop.serious, aes(x=notserious_unclear, y = freq, fil
 plot.prop.serious
 ```
 
+## How many tweets frame suicide negatively or suggest solutions and hope?
+
+```{r}
+as.data.frame(d %>%
+                group_by(focus) %>%
+                summarise (n = n()) %>%
+                mutate(freq = n / sum(n))) %>% 
+  ungroup()
+```
+
+## How many tweets per message type?
+
+```{r}
+as.data.frame(d %>%
+                group_by(type) %>%
+                summarise (n = n()) %>%
+                mutate(freq = n / sum(n))) %>% 
+  ungroup()
+```
+
 
 # In the random sample of 1000 tweets 
-
 ## Proportion per main category in random sample
 ```{r}
 prop.main <- as.data.frame(d %>%
@@ -270,7 +299,7 @@ prop.main <- as.data.frame(d %>%
                              summarise (n = n()) %>%
                              mutate(freq = n / sum(n))) %>% 
   ungroup()
-write.table(prop.main,'../output/tweets_per_maincategory_randomsample_20211004.tsv', sep='\t', row.names=F)
+write.table(prop.main,'../results/tweets_per_maincategory_randomsample_20211004.tsv', sep='\t', row.names=F)
 # prop.main
 ```
 
@@ -294,7 +323,7 @@ plot.n.main<- ggplot(prop.main, aes(x=main_category, y = n, fill=main_category))
 plot.prop.main
 plot.n.main
 #pdf('./figures/maincategories_random_sample.pdf', height=5, width=7); plot.prop.main; plot.n.main; #dev.off()
-# write.table(prop.main,'output/tweets_per_maincategory_randomsample_20210104.tsv', sep='\t', row.names=F)
+# write.table(prop.main,'results/tweets_per_maincategory_randomsample_20210104.tsv', sep='\t', row.names=F)
 ```
 
 ## Proportion per subcategory in random sample
@@ -306,6 +335,40 @@ prop.cat = as.data.frame(d %>%
                            summarise (n = n()) %>%
                            mutate(freq = round(n / sum(n)*100,2))) %>%
   ungroup()
-# write.table(prop.cat,'../output/tweets_per_subcategory_randomsample_20211004.tsv', sep='\t', row.names=F)
+# write.table(prop.cat,'../results/tweets_per_subcategory_randomsample_20211004.tsv', sep='\t', row.names=F)
 ```
 
+
+## How many tweets are not serious,or unclear if serious in random sample?
+```{r}
+prop.serious <- as.data.frame(
+  d %>%
+    filter(set=="basefrequency") %>% 
+    group_by(notserious_unclear) %>%
+    summarise (n = n()) %>%
+    mutate(freq = n / sum(n))) %>% 
+  ungroup()
+prop.serious
+```
+## How many tweets frame suicide negatively or suggest solutions and hope?
+
+```{r}
+as.data.frame(
+  d %>%
+    filter(set=="basefrequency") %>% 
+    group_by(focus) %>%
+    summarise (n = n()) %>%
+    mutate(freq = n / sum(n))) %>% 
+  ungroup()
+```
+## How many tweets per message type?
+
+```{r}
+as.data.frame(
+  d %>%
+    filter(set=="basefrequency") %>%    
+    group_by(type) %>%
+    summarise (n = n()) %>%
+    mutate(freq = n / sum(n))) %>% 
+  ungroup()
+```
