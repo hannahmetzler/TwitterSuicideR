@@ -331,11 +331,39 @@ ggplot(data=filter(dtsmonthly, prediction!="irrelevant"))+
 * The Werther outlier in June could be Spade and Bourdain in 2018?
 * Awareness median also regularly higher in August, lower in June. 
 
+
+# Weekly pattern? Total number of tweets per weekday (averaged across 7 years)
+
+```{r}
+dcatperwday = dcatperday %>% 
+  group_by(weekday, prediction) %>% 
+  summarise(median_tweets = median(ntweets)) %>% 
+  #thousand tweets
+  mutate(thousand_tweets = median_tweets/1000) %>% ungroup()
+#plot per week day
+ggplot(data=dcatperwday, aes(x=weekday, y=median_tweets, colour = prediction))+
+  geom_point()+ geom_line(aes(group=prediction))+
+  theme_bw()+
+  scale_colour_manual(values=mycols)+
+  ggtitle("Median tweets per weekday")
+ggplot(data=filter(dcatperwday, prediction !="irrelevant"), aes(x=weekday, y=median_tweets, colour = prediction))+
+  geom_point()+ geom_line(aes(group=prediction))+
+  theme_bw()+
+  scale_colour_manual(values=mycols)+
+  ggtitle("Median tweets per weekday (without irrelevant category)")
+ggplot(data=filter(dcatperwday, prediction =="coping" | prediction == "suicidality"), aes(x=weekday, y=median_tweets, colour = prediction))+
+  geom_point()+ geom_line(aes(group=prediction))+
+  theme_bw()+
+  scale_colour_manual(values=mycols)+
+  ggtitle("Median tweets per weekday: suicidality and coping category)")
+```
+
+
 # Daily timeline of daily tweets per category
 
 ```{r, fig.width=10, fig.height=12}
 Sys.setlocale("LC_ALL", 'en_US.UTF-8')
-ggplot(data=dpaper, aes(x=date, y=percent, colour = prediction))+
+plot_timeseries = ggplot(data=dpaper, aes(x=date, y=percent, colour = prediction))+
   geom_line()+
   theme_bw()+
   scale_colour_manual(values=mycols2)+
@@ -347,12 +375,13 @@ ggplot(data=dpaper, aes(x=date, y=percent, colour = prediction))+
         axis.text.x = element_text(angle = 45, hjust=1))+
   geom_vline(aes(xintercept=as.Date("2017-01-01")), colour = "grey", linetype=3)+
   geom_vline(aes(xintercept=as.Date("2018-01-01")), colour = "grey", linetype = 3)
-ggsave('../figures/Daily_timeseries_per_category.pdf',  width=10, height=13, dpi=300)
+plot_timeseries
+# ggsave('../figures/Daily_timeseries_per_categoryR.pdf',  plot_timeseries, width=10, height=13, dpi=300)
 ```
 
 # Idenfication of peaks and associated events
 
-```{r}
+```{r, tweet text preprocessing}
 #set date format to english
 Sys.setlocale("LC_ALL", 'en_US.UTF-8')
 
@@ -360,7 +389,7 @@ Sys.setlocale("LC_ALL", 'en_US.UTF-8')
 dp = read.csv('full_tweet_set_for_predictions_withRTs_inquery/twitter_14M_with_predictions_withRTs.csv', stringsAsFactors=F, sep='\t', colClasses = "character")
 
 #format variables and select 3 years for paper
-dp1 = dp %>% 
+dp = dp %>% 
   mutate(main_category = factor(main_category), 
          about_suicide = factor(about_suicide)) %>% 
   #filter the 3 years for the paper
@@ -368,6 +397,8 @@ dp1 = dp %>%
   #format date
   mutate(date = lubridate::mdy(time, locale = Sys.getlocale("LC_TIME"))) %>% 
   arrange(date)
+
+dp = dp1
 
 #from wordcloud tutorial: https://towardsdatascience.com/create-a-word-cloud-with-r-bde3e7422e8a
 #clean the tweet text
@@ -389,42 +420,25 @@ wordcloud_suicide = function(dcloud){
   
   #make wordcloud
   set.seed(1234) # for reproducibility 
-  wordcloud::wordcloud(words =words$word, freq = words$n, min.freq = 1,           
-                       max.words=200, random.order=FALSE, rot.per=0.35,            
+  wordcloud::wordcloud(words =words$word, freq = words$n, min.freq = 5,           
+                       max.words=100, random.order=FALSE, rot.per=0.35,            
                        colors=brewer.pal(8, "Dark2"))
 }
 ```
 
-
-# Prevention peaks 
-
-```{r}
-dprev9 = dp1 %>%
-  filter(main_category=="prevention" & lubridate::month(date)=="9" )
-```
-
-## peak on 2016-11-10
-```{r, 2016-11-10, cache=TRUE}
-#pick the day with a peak: 
-dcloud = dp1 %>% 
-  filter(main_category == "prevention"& date=="2016-11-10")
-wordcloud_suicide(dcloud)
-```
-
-Linked to calls to suicide hotline/lifeline after Trumps election
-
-
 ## Coping
 
-```{r, coping suicidality daily, fig.width=10, fig.height=4}
-ggplot(data=filter(dpaper, prediction=="Coping" | prediction=="Suicidal ideation & attempts"), 
-       aes(x=date, y=percent, colour = prediction))+
-  geom_line()+ facet_wrap(~prediction, ncol=1)+
-  theme_bw()+theme(legend.position="none")+
-  scale_colour_manual(values=mycols2)+
+```{r, coping, fig.width=10, fig.height=4}
+(ggplot(data=filter(dpaper, prediction=="Coping"), 
+       aes(x=date, y=percent, colour = year))+
+  geom_line()+
+  theme_bw()+
+  facet_wrap(~year, scales = "free_x", ncol=1)+
+  scale_x_date(breaks = seq(as.Date("2016-01-01"), as.Date("2019-01-01"), by="1 months"), 
+               date_labels = "%b", minor_breaks = "1 month", expand = c(0.01,0.01))+
+  scale_colour_manual(values=catcols)+
   ylab("Percent per predicted category")+
-  theme(legend.position="none", text=element_text(size=s+5), axis.title.x=element_blank(), plot.margin = margin(rep(0.5,4), unit="cm"))
-# ggsave('../figures/Daily_timeseries_Coping_Suicidal.pdf',  width=10, height=5, dpi=300)
+  theme(legend.position="none", text=element_text(size=s), axis.title.x=element_blank(), plot.margin = margin(rep(0.5,4), unit="cm")))
 ```
 
 Peaks above 5% daily tweets for coping stories: 
@@ -432,66 +446,388 @@ Peaks above 5% daily tweets for coping stories:
 ```{r}
 dpaper %>%
  filter(prediction=="Coping")%>%
-  filter(percent>6) %>%
+  filter(percent>20) %>%
   select(prediction, date, percent) %>% 
   group_by(date) %>% slice(1) %>% 
   arrange(date)
 ```
 
-<!-- * 2018-11-24				 -->
-<!-- * 2018-06-01				 -->
-<!-- * 2018-04-04				 -->
-<!-- * 2017-11-26				 -->
-<!-- * 2018-12-07				 -->
-<!-- * 2018-05-31				 -->
-<!-- * 2018-08-31				 -->
-* 2017-11-24/25: 	
-  - Possible events: [Sinai mosque attack](https://en.wikipedia.org/wiki/2017_Sinai_mosque_attack)
-* 2018-08-25: 
-     - suicide attack in jalaad?	 [Aljazeera](https://www.aljazeera.com/news/2018/8/25/suicide-attack-in-jalalabad-claims-at-least-seven-lives)			
+### Peak on 2017-11-24
+
+```{r, wordcloud 2017-11-24, cache=TRUE}
+#pick the day with a peak: 
+dcloud = dp1 %>% 
+  filter(main_category == "coping"& date=="2017-11-24" | main_category == "coping"& date=="2017-11-25")
+wordcloud_suicide(dcloud)
+```
+
+Word frequency: 
+
+```{r}
+words <- dcloud %>%
+    #toknize
+    tidytext::unnest_tokens(output= word, input= text) %>% 
+    #calculate frequency
+    count(word, sort=TRUE)
+words
+```
+Around 6000 retweets of: 
+
+```{r}
+dp %>% 
+  filter(main_category == "coping"& date=="2017-11-24") %>% 
+  filter(str_detect(text, "weeks")) %>% 
+  select(text) %>% slice(1)
+```
+
+
+
+
+### Peak on 2018-08-24
+
+```{r, wordcloud 2018-08-24, cache=TRUE}
+#pick the day with a peak: 
+dcloud = dp1 %>% 
+  filter(main_category == "coping"& date=="2018-08-24" | main_category == "coping"& date=="2018-08-25")
+wordcloud_suicide(dcloud)
+```
+
+Word frequency: 
+
+```{r}
+words <- dcloud %>%
+    #toknize
+    tidytext::unnest_tokens(output= word, input= text) %>% 
+    #calculate frequency
+    count(word, sort=TRUE)
+words[10:20,]
+```
+
+Around 5000 retweets of: 
+
+```{r}
+dp %>% 
+ filter(main_category == "coping"& date=="2018-08-24" | main_category == "coping"& date=="2018-08-25") %>% 
+  filter(str_detect(text, "Marine")) %>% 
+  select(text) %>% slice(1)
+```
+
 
 
 
 ## Suicidal ideation 
 
-Peaks above 2000 daily tweets for suicidal stories: 
+```{r, suicidal}
+(ggplot(data=filter(dpaper, prediction=="Suicidal ideation & attempts"), 
+       aes(x=date, y=percent, colour = year))+
+  geom_line()+
+  theme_bw()+
+  facet_wrap(~year, scales = "free_x", ncol=1)+
+  scale_x_date(breaks = seq(as.Date("2016-01-01"), as.Date("2019-01-01"), by="1 months"), 
+               date_labels = "%b", minor_breaks = "1 month", expand = c(0.01,0.01))+
+  scale_colour_manual(values=catcols)+
+  ylab("Percent per predicted category")+
+  theme(legend.position="none", text=element_text(size=s), axis.title.x=element_blank(), plot.margin = margin(rep(0.5,4), unit="cm")))
+```
+
+Peaks above 5% daily tweets for coping stories: 
 
 ```{r}
-dcatperday %>%
- filter(prediction=="suicidality") %>%
-  filter(ntweets>2000) %>%
-  select(date, ntweets) 
+dpaper %>%
+ filter(prediction=="Suicidal ideation & attempts")%>%
+  filter(percent>12) %>%
+  select(prediction, date, percent) %>% 
+  group_by(date) %>% slice(1) %>% 
+  arrange(date)
+```
+
+### Peak on 2016-01-19
+
+```{r, wordcloud 2016-01-19, cache=TRUE}
+#pick the day with a peak: 
+dcloud = dp1 %>% 
+  filter(main_category == "suicidality"& date=="2016-01-19")
+wordcloud_suicide(dcloud)
+```
+
+Word frequency: 
+
+```{r}
+words <- dcloud %>%
+    #toknize
+    tidytext::unnest_tokens(output= word, input= text) %>% 
+    #calculate frequency
+    count(word, sort=TRUE)
+words[10:20,]
+```
+
+846 retweets of: 
+
+```{r}
+dp %>% 
+  filter(main_category == "suicidality"& date=="2016-01-19") %>% 
+  filter(str_detect(text, "BITCH")) %>% 
+  select(text) %>% slice(1)
+```
+
+
+
+
+
+### Peak on 2018-05-21	
+
+```{r, wordcloud 2018-05-21, cache=TRUE}
+#pick the day with a peak: 
+dcloud = dp1 %>% 
+  filter(main_category == "suicidality"& date=="2018-05-21" | main_category == "suicidality"& date=="2018-05-22")
+wordcloud_suicide(dcloud)
+```
+
+Word frequency: 
+
+```{r}
+words <- dcloud %>%
+    #toknize
+    tidytext::unnest_tokens(output= word, input= text) %>% 
+    #calculate frequency
+    count(word, sort=TRUE)
+words[15:20,]
+```
+
+Around 4000 retweets of: 
+
+```{r}
+dp1 %>% 
+  filter(main_category == "suicidality"& date=="2018-05-21") %>% 
+    filter(str_detect(text, "jobCareer")) %>% 
+  select(text) %>% slice(1)
+```
+
+This tweet continued like this, the model did not have the full text: "Man y’all. I’m 21. I have a degree. A full time job(Career). And am about to get a second degree for free. Y’all I’m from the hood. I was born to a 15 year old mother. I battled suicide for 5 years. This was not supposed to be my story. To God be the glory."
+It's a false positive, should have been a coping tweet. 
+
+
+
+### Peak on 2018-10-12
+
+
+```{r, wordcloud 2018-10-121, cache=TRUE}
+#pick the day with a peak: 
+dcloud = dp1 %>% 
+  filter(main_category == "suicidality"& date=="2018-10-12" | main_category == "suicidality"& date=="2018-10-13")
+wordcloud_suicide(dcloud)
+```
+
+Word frequency: 
+
+```{r}
+words <- dcloud %>%
+    #toknize
+    tidytext::unnest_tokens(output= word, input= text) %>% 
+    #calculate frequency
+    count(word, sort=TRUE)
+words[15:21,]
+```
+
+Around 1144 retweets of: "Therapist: any suicidal thoughts? me, has been thinking "I wish I was dead" every 5 minutes since middle school: no, none..."
+
+```{r}
+dp1 %>% 
+  filter(main_category == "suicidality"& date=="2018-10-12") %>% 
+    filter(str_detect(text, "therapist")) %>% 
+  select(text) %>% slice(1)
 ```
 
 ## Awareness
 
 ```{r}
-ggplot(data=filter(dcatperday, prediction=="awareness" | prediction=="prevention"  | prediction=="werther"),
-                   aes(x=date, y=ntweets, colour = prediction))+
-  geom_line()+ facet_wrap(~prediction, ncol=1)+
-  theme_bw()+theme(legend.position="none")+
-  scale_colour_manual(values=mycols)
+(ggplot(data=filter(dpaper, prediction=="Awareness"), 
+       aes(x=date, y=percent, colour = year))+
+  geom_line()+
+  theme_bw()+
+  facet_wrap(~year, scales = "free_x", ncol=1)+
+  scale_x_date(breaks = seq(as.Date("2016-01-01"), as.Date("2019-01-01"), by="1 months"), 
+               date_labels = "%b", minor_breaks = "1 month", expand = c(0.01,0.01))+
+  scale_colour_manual(values=catcols)+
+  ylab("Percent per predicted category")+
+  theme(legend.position="none", text=element_text(size=s), axis.title.x=element_blank(), plot.margin = margin(rep(0.5,4), unit="cm")))
 ```
 
 * Large awareness peaks above 6000 daily tweets:
 
 ```{r}
-dcatperday %>%
+dpaper %>%
   filter(prediction=="Awareness") %>%
-    filter(percent>60) %>%
+  filter(percent>50) %>%
   select(prediction, date, percent) %>% 
   group_by(date) %>% slice(1) %>% 
-  arrange(percent, decreasing = T)
+  arrange(date) %>% 
+  select(date, percent)
 ```
+### Peak on 2016-04-22
+
+```{r, wordcloud 2016-04-22, cache=TRUE}
+#pick the day with a peak: 
+dcloud = dp1 %>% 
+  filter(main_category == "awareness"& date=="2016-04-22")
+wordcloud_suicide(dcloud)
+```
+
+Word frequency: 
+
+```{r}
+words <- dcloud %>%
+    #toknize
+    tidytext::unnest_tokens(output= word, input= text) %>% 
+    #calculate frequency
+    count(word, sort=TRUE)
+words
+```
+
+Around 900 retweets of: 
+
+```{r}
+dp %>% 
+  filter(main_category == "awareness"& date=="2016-04-22") %>% 
+  filter(str_detect(text, "rate")) %>% 
+  select(text)
+```
+
+
+
+### Peak on 2017-02-21
+
+```{r, wordcloud 2017-02-21, cache=TRUE}
+#pick the day with a peak: 
+dcloud = dp1 %>% 
+  filter(main_category == "awareness"& date=="2017-02-21")
+wordcloud_suicide(dcloud)
+```
+
+Word frequency: 
+
+```{r}
+words <- dcloud %>%
+    #toknize
+    tidytext::unnest_tokens(output= word, input= text) %>% 
+    #calculate frequency
+    count(word, sort=TRUE)
+words
+```
+
+Around 3000 retweets of: 
+
+```{r}
+dp %>% 
+  filter(main_category == "awareness"& date=="2017-02-21") %>% 
+  filter(str_detect(text, "marriage")) %>% 
+  select(text)
+```
+
+
+
+### Peak on 2017-07-29
+
+```{r, wordcloud 2017-07-29, cache=TRUE}
+#pick the day with a peak: 
+dcloud = dp1 %>% 
+  filter(main_category == "awareness"& date=="2017-07-29")
+wordcloud_suicide(dcloud)
+```
+Word frequency: 
+
+```{r}
+words <- dcloud %>%
+    #toknize
+    tidytext::unnest_tokens(output= word, input= text) %>% 
+    #calculate frequency
+    count(word, sort=TRUE)
+words
+```
+
+Around 3500 retweets of: 
+
+```{r}
+dp1 %>% 
+  filter(main_category == "awareness"& date=="2017-07-29") %>% 
+  filter(str_detect(text, "sympathy")) %>% 
+  select(text) %>% slice(1)
+```
+
+
+
+
+### Peak on 2017-11-20
+
+Peak lasts for 2 days
+
+```{r, wordcloud 2017-11-20, cache=TRUE}
+#pick the day with a peak: 
+dcloud = dp1 %>% 
+  filter(main_category == "awareness"& date=="2017-11-20" | main_category == "awareness"& date=="2017-11-21")
+wordcloud_suicide(dcloud)
+```
+
+Word frequency: 
+
+```{r}
+words <- dcloud %>%
+    #toknize
+    tidytext::unnest_tokens(output= word, input= text) %>% 
+    #calculate frequency
+    count(word, sort=TRUE)
+words[10:20,]
+```
+
+Around 7000 retweets of: 
+
+```{r}
+dp %>% 
+  filter(main_category == "awareness"& date=="2017-11-20") %>% 
+  filter(str_detect(text, "biggest")) %>% 
+  select(text) %>% slice(1)
+```
+
+
+### Peak on 2018-08-17	
+```{r, wordcloud 2018-08-17, cache=TRUE}
+#pick the day with a peak: 
+dcloud = dp1 %>% 
+  filter(main_category == "awareness"& date=="2018-08-17")
+wordcloud_suicide(dcloud)
+```
+
+Word frequency: 
+
+```{r}
+words <- dcloud %>%
+    #toknize
+    tidytext::unnest_tokens(output= word, input= text) %>% 
+    #calculate frequency
+    count(word, sort=TRUE)
+words
+```
+
+Around 6000 retweets of: 
+
+```{r}
+dp1 %>% 
+  filter(main_category == "awareness"& date=="2018-08-17") %>% 
+  filter(str_detect(text, "boys")) %>% 
+  select(text)
+```
+
 
 ## Prevention
 
 ```{r}
-ggplotly(ggplot(data=filter(dpaper, prediction=="Prevention"), 
+(ggplot(data=filter(dpaper, prediction=="Prevention"), 
        aes(x=date, y=percent, colour = year))+
   geom_line()+
   theme_bw()+
   facet_wrap(~year, scales = "free_x", ncol=1)+
+  scale_x_date(breaks = seq(as.Date("2016-01-01"), as.Date("2019-01-01"), by="1 months"), 
+               date_labels = "%b", minor_breaks = "1 month", expand = c(0.01,0.01))+
   scale_colour_manual(values=catcols)+
   ylab("Percent per predicted category")+
   theme(legend.position="none", text=element_text(size=s), axis.title.x=element_blank(), plot.margin = margin(rep(0.5,4), unit="cm")))
@@ -543,58 +879,195 @@ Christmas and New Year:
     - 2017-01-08/09
     - 2017-01-20
 
+Other events: 
 
-* Other irregular events to stil lidentify and check if they make sense: 2016-11-09, 2017-03-19, 2019-09-02 
-* October 2018 suicide cluster: https://www.newyorker.com/magazine/2021/04/19/a-mysterious-suicide-cluster
+* 2016-11-09: Trump election, checked with wordcloud below
+* 2017-03-19
+* 2018-10-20: many tweets about hotline and eating disorders (wordcloud below)
+    - suicide cluster: https://www.newyorker.com/magazine/2021/04/19/a-mysterious-suicide-cluster -->
 
+
+### Peak on 2016-11-10
+
+```{r, 2016-11-10, cache=TRUE}
+#pick the day with a peak: 
+dcloud = dp1 %>% 
+  filter(main_category == "prevention"& date=="2016-11-10")
+wordcloud_suicide(dcloud)
+```
+
+Linked to calls to suicide hotline/lifeline after Trumps election
+
+### Peak on 2018-10-20
+
+```{r, 2018-10-20, cache=TRUE}
+#pick the day with a peak: 
+dcloud = dp1 %>% 
+  filter(main_category == "prevention"& date=="2018-10-20")
+wordcloud_suicide(dcloud)
+```
+Eating disorders, addition and the number of the lifeline. 
 
     
 ## Suicide case reports
 
+```{r}
+ggplotly(ggplot(data=filter(dpaper, prediction=="Suicide cases"), 
+       aes(x=date, y=percent, colour = year))+
+  geom_line()+
+  theme_bw()+
+  facet_wrap(~year, scales = "free_x", ncol=1)+
+  scale_x_date(breaks = seq(as.Date("2016-01-01"), as.Date("2019-01-01"), by="1 months"), 
+               date_labels = "%b", minor_breaks = "1 month", expand = c(0.01,0.01))+
+  scale_colour_manual(values=catcols)+
+  ylab("Percent per predicted category")+
+  theme(legend.position="none", text=element_text(size=s), axis.title.x=element_blank(), plot.margin = margin(rep(0.5,4), unit="cm")))
+```
+
 Useful link: List of death by year on [Wikipedia](https://en.wikipedia.org/wiki/Lists_of_deaths_by_year). 
 [List of suicides in the 21st century](https://en.wikipedia.org/wiki/List_of_suicides_in_the_21st_century)
 
-* 5  large Werther peaks: 
- - 2016-02-05: Mirra David died by suicide on February 4, 2016. [Wikipedia](https://en.wikipedia.org/wiki/Dave_Mirra), 
- and suicide attack in [Kabul](https://www.mfa.gov.tr/no_-35_-2-february-2016_-press-release-regarding-the-suicide-attack-perpetrated-in-kabul_-the-capital-city-of-afghanistan.en.mfa)
- - 2017-09-08: nobody on wiki list
- - 2017-10-05
+* 5  large Werther peaks (see below for wordclouds): 
+ - 2016-02-05: Mirra David suicide on February 4, 2016. [Wikipedia](https://en.wikipedia.org/wiki/Dave_Mirra), 
+ - 2017-09-08: a women remembering her husband's suicide, many retweets
+ - 2017-10-05: Las Vegas shooting, a reply to a tweet by Trump was retweeted a lot, about the shooter killing himself
  - 2017-11-04: Brad Bufada on November 3, from Wikipedia suicide list, [Article](https://variety.com/2017/tv/news/brad-bufanda-dead-dies-veronica-mars-1202606441/)
  - 2018-02-02
 
 ```{r}
 dpaper %>%
   filter(prediction=="Suicide cases") %>%
-  filter(percent>60) %>%
+  filter(percent>50) %>%
   select(prediction, date, percent) %>% 
   group_by(date) %>% slice(1) %>% 
   arrange(date)
 ```
+### Peak on 2016-02-05
 
+```{r, wordcloud 2016-02-05, cache=TRUE}
+#pick the day with a peak: 
+dcloud = dp1 %>% 
+  filter(main_category == "werther"& date=="2016-02-05")
+wordcloud_suicide(dcloud)
+```
+### Peak on 2017-09-08
 
-# Weekly pattern? Total number of tweets per weekday (averaged across 7 years)
-
-```{r}
-dcatperwday = dcatperday %>% 
-  group_by(weekday, prediction) %>% 
-  summarise(median_tweets = median(ntweets)) %>% 
-  #thousand tweets
-  mutate(thousand_tweets = median_tweets/1000) %>% ungroup()
-#plot per week day
-ggplot(data=dcatperwday, aes(x=weekday, y=median_tweets, colour = prediction))+
-  geom_point()+ geom_line(aes(group=prediction))+
-  theme_bw()+
-  scale_colour_manual(values=mycols)+
-  ggtitle("Median tweets per weekday")
-ggplot(data=filter(dcatperwday, prediction !="irrelevant"), aes(x=weekday, y=median_tweets, colour = prediction))+
-  geom_point()+ geom_line(aes(group=prediction))+
-  theme_bw()+
-  scale_colour_manual(values=mycols)+
-  ggtitle("Median tweets per weekday (without irrelevant category)")
-ggplot(data=filter(dcatperwday, prediction =="coping" | prediction == "suicidality"), aes(x=weekday, y=median_tweets, colour = prediction))+
-  geom_point()+ geom_line(aes(group=prediction))+
-  theme_bw()+
-  scale_colour_manual(values=mycols)+
-  ggtitle("Median tweets per weekday: suicidality and coping category)")
+```{r, wordcloud  2017-09-08, cache=TRUE}
+#pick the day with a peak: 
+dcloud = dp1 %>% 
+  filter(main_category == "werther"& date==" 2017-09-08")
+wordcloud_suicide(dcloud)
 ```
 
+```{r}
+dp1 %>% 
+  filter(main_category == "werther"& date==" 2017-09-08") %>% 
+  select(text) %>% slice(1)
+```
+
+
+These are essentially a lot of retweets (>5000) of the tweet "This was days before my husband took his own life. Suicidal thoughts were there, but you'd Never know.  Fuck depression."
+
+### Peak on 2017-10-05
+
+```{r, wordcloud  2017-10-05, cache=TRUE}
+#pick the day with a peak: 
+dcloud = dp1 %>% 
+  filter(main_category == "werther"& date=="2017-10-05")
+wordcloud_suicide(dcloud)
+```
+
+Retweets of the following tweet, a response to a [tweet](https://thehill.com/homenews/administration/353763-trump-its-a-miracle-how-fast-las-vegas-police-found-the-shooter-and) by Donald Trump about how it was a "miracle" how fast the police stopped the shooter at the [Las Vegas shooting](https://en.wikipedia.org/wiki/2017_Las_Vegas_shooting)
+
+```{r}
+dp1 %>% 
+  filter(main_category == "werther"& date=="2017-10-05") %>% 
+  select(text) %>% slice(1)
+```
+### Peak on 2017-11-04
+
+```{r, wordcloud  2017-11-04, cache=TRUE}
+#pick the day with a peak: 
+dcloud = dp1 %>% 
+  filter(main_category == "werther"& date=="2017-11-04")
+wordcloud_suicide(dcloud)
+```
+
+Retweets of a tweet about a girlfriend that killed herself 
+
+```{r}
+dp1 %>% 
+  filter(main_category == "werther"& date=="2017-11-04") %>% 
+  select(text) %>% slice(1)
+```
+### Peak on 2018-02-02
+
+
+```{r, wordcloud 2018-02-02, cache=TRUE}
+#pick the day with a peak: 
+dcloud = dp1 %>% 
+  filter(main_category == "werther"& date=="2018-02-02")
+wordcloud_suicide(dcloud)
+```
+
+```{r}
+dp %>% 
+  filter(main_category == "werther"& date=="2018-02-02") %>% 
+  filter(str_detect(text, "Fidel Castro")) %>% 
+  select(text) %>% slice(1)
+```
+
+### Peak on 2018-06-07
+
+
+```{r, wordcloud 2018-06-07, cache=TRUE}
+#pick the day with a peak: 
+dcloud = dp1 %>% 
+  filter(main_category == "werther"& date=="2018-06-07")
+wordcloud_suicide(dcloud)
+```
+
+### Peak on 2018-06-08
+
+Anthony Bourdain
+
+```{r, wordcloud 2018-06-08, cache=TRUE}
+#pick the day with a peak: 
+dcloud = dp1 %>% 
+  filter(main_category == "werther"& date=="2018-06-08")
+wordcloud_suicide(dcloud)
+```
+
+### Peak on 2017-09-09	
+
+```{r, wordcloud 2017-04-19	, cache=TRUE}
+#pick the day with a peak: 
+dcloud = dp1 %>% 
+  filter(main_category == "werther"& date=="2017-04-19")
+wordcloud_suicide(dcloud)
+```
+
+### Peak on 2017-07-20
+
+```{r, wordcloud 2017-07-20	, cache=TRUE}
+#pick the day with a peak: 
+dcloud = dp1 %>% 
+  filter(main_category == "werther"& date=="2017-07-20")
+wordcloud_suicide(dcloud)
+```
+
+### Peak on 2018-04-28
+
+```{r, wordcloud 2018-04-28, cache=TRUE}
+#pick the day with a peak: 
+dcloud = dp1 %>% 
+  filter(main_category == "werther"& date=="2018-04-28")
+wordcloud_suicide(dcloud)
+```
+
+```{r}
+dp %>% 
+  filter(main_category == "werther"& date=="2018-04-28") %>% 
+  filter(str_detect(text, "avicii")) %>% 
+  select(text)
+```
