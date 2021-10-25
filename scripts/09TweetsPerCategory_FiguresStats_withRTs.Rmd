@@ -386,7 +386,7 @@ plot_timeseries
 Sys.setlocale("LC_ALL", 'en_US.UTF-8')
 
 #new predictions file based on Crimson Hexagon query including Retweets, including the text of tweets
-dp = read.csv('full_tweet_set_for_predictions_withRTs_inquery/twitter_14M_with_predictions_withRTs.csv', stringsAsFactors=F, sep='\t', colClasses = "character")
+dp = read.csv('../full_tweet_set_for_predictions_withRTs_inquery/twitter_14M_with_predictions_withRTs.csv', stringsAsFactors=F, sep='\t', colClasses = "character")
 
 #format variables and select 3 years for paper
 dp = dp %>% 
