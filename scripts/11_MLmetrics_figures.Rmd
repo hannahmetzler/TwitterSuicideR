@@ -27,8 +27,8 @@ s = 15
 ```
 
 ```{r, read & format data}
-d6 = read.csv('../results/BERT2_intraclass_performance_6_classes.csv', sep='\t')
-
+d6 = read.csv('../results/BERT2_intraclass_performance_6_classes.csv')
+head(d6)
 #order categories
 ord_mcategory= c( "Suicidal", "Coping", "Awareness", "Prevention", "Werther", "Irrelevant")
 d6 <- d6 %>% 
@@ -46,10 +46,10 @@ plot6 = ggplot(d6l, aes(x=Main_category, y = Score, fill=Metric, colour = Metric
   geom_bar(stat="identity", position = position_dodge2(width = 0.9))+
   # geom_errorbar(aes(ymin = ci_low,ymax = ci_high), width=0.5, size=0.8) +
   labs(y="BERT 2 performance score", x="") +
-  scale_fill_manual(values=alpha(mycols, 0.7), name="")+
-   scale_colour_manual(values=mycols, name="")+
+  scale_fill_manual(values=alpha(cols, 0.7), name="")+
+   scale_colour_manual(values=cols, name="")+
   scale_y_continuous(breaks = seq(0, 1, 0.1), limits = c(0, 0.95))+
-  theme_bw() +  
+  theme_bw() +
   theme(legend.position="bottom", text=element_text(size=s), axis.title.x=element_blank(), plot.margin = margin(rep(0.5,4), unit="cm"))
 plot6
 ```
@@ -62,10 +62,11 @@ plotm = ggplot(d6l, aes(x=Main_category, y = Score, fill=Main_category, colour =
   facet_wrap(~Metric, ncol=2)+
   scale_fill_manual(values=alpha(mycols2, 0.7), name="")+
    scale_colour_manual(values=mycols2, name="")+
-  scale_y_continuous(breaks = seq(0, 1, 0.2), limits = c(0, 0.95))+
+  scale_y_continuous(breaks = seq(0, 1, 0.2), limits = c(0, 0.97))+
   theme_bw() +  
   theme(axis.text.x = element_text(angle = 60, hjust=1.2, vjust=1.15), legend.position="none", text=element_text(size=s), axis.title.x=element_blank(), plot.margin = margin(rep(0.4,4), unit="cm"))
 plotm
+ggsave('../figures/Figure_BERT_intraclass_6categories.pdf', plotm, width=6, height=5.2, dpi=300)
 ```
 
 
@@ -87,11 +88,12 @@ plotabout = ggplot(dsl, aes(x=About_suicide, y = Score, fill=About_suicide, colo
   facet_wrap(~Metric, ncol=2)+
   scale_fill_manual(values=alpha(cols2, 0.7), name="")+
    scale_colour_manual(values=cols2, name="")+
-  scale_y_continuous(breaks = seq(0, 1, 0.2), limits = c(0, 0.95))+
+  scale_y_continuous(breaks = seq(0, 1, 0.2), limits = c(0, 0.97))+
   theme_bw() +  
   theme(axis.text.x = element_text(angle = 60, hjust=1), legend.position="none", text=element_text(size=s), axis.title.x=element_blank(), plot.margin = margin(rep(0.4,4), unit="cm"))
 plotabout
 plotabout_b = plotabout + theme(axis.title.y = element_blank())
+ggsave('../figures/Figure_BERT_intraclass_about_suicide.pdf', plotabout, width=4, height=5.2, dpi=300)
 ```
 
 # Combined figure for paper
@@ -99,10 +101,39 @@ plotabout_b = plotabout + theme(axis.title.y = element_blank())
 ```{r, fig.width=8.5, fig.height=5}
 
 combined = ggarrange(plotm, plotabout_b, ncol=2, nrow=1, align = "hv",
-          labels = c("a", "b"), widths = c(2.1,1), font.label = list(size = 16))
+            labels = c("a", "b"), widths = c(2.1,1), font.label = list(size = 16))
 combined
 
 ggsave('../figures/Figure1_BERT_intraclasses_permetric.pdf', combined,
       width=8.5, height=5.2, dpi=300)
+```
+
+
+# Model comparison 6 categories
+
+Figure for presentations
+
+```{r, read macro 6 categories data}
+dma = read.csv('../results/Model_comparison_macro.csv', sep=',')
+#long format
+dmal = pivot_longer(dma, cols = c("Precision", "Recall", "F1", "Accuracy"), names_to = "Metric", values_to ="Score") %>% 
+  mutate(Metric = factor(Metric, levels = c("Precision", "Recall", "F1", "Accuracy"), labels = c("Precision", "Recall", "F1", "Accuracy")), 
+         Model = factor(Model, levels =c("Majority", "TF-IDF","BERT", "XLNet"), labels = c("Majority", "TF-IDF","BERT", "XLNet")))
+```
+
+
+```{r}
+plotma = ggplot(dmal, aes(x=Model, y = Score, fill=Metric, colour = Metric)) + #dataset and variables to plot
+  geom_bar(stat="identity", position = position_dodge2(width = 0.9))+
+  # geom_errorbar(aes(ymin = ci_low,ymax = ci_high), width=0.5, size=0.8) +
+  # labs(y="BERT performance", x="") +
+  # facet_wrap(~Metric, ncol=2)+
+  scale_fill_manual(values=alpha(cols, 0.7), name="")+
+   scale_colour_manual(values=cols, name="")+
+  scale_y_continuous(breaks = seq(0, 1, 0.2))+
+  theme_bw() +  
+  theme(legend.position="top", text=element_text(size=s), axis.title.x=element_blank(), plot.margin = margin(rep(0.4,4), unit="cm"))
+plotma
+ggsave('../figures/Model_comparison_6categories.pdf', plotma, width=6, height=4, dpi=300)
 ```
 
