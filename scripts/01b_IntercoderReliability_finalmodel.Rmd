@@ -17,9 +17,10 @@ options(scipen=99)
 library(dplyr)
 library(stringr)
 library(tidyr)
-library(irr)
+library(DescTools) #for cohen's kappa instead of irr - change in paper
 library(janitor) #for viewing duplicates
 library(caret) #confusionMatrix
+library(cocron)
 ```
 
 # Final reliability round 4: 150 predicted with BERT for 5 main categories of interest
@@ -203,6 +204,13 @@ dt4 = dt4 %>%
   mutate(main_category = factor(main_category, levels = ord_mcategory, labels = ord_mcategory))
 str(d4)
 levels(d4$category.thomas)
+
+#filter (remove) the irrelevant category for calculating Kappa (only predictions for 5 relevant ones included in BERT)
+d4r = d4 %>%  #data round 4 relevant categories only
+  filter(main_category.hannah != "irrelevant") %>% 
+  filter(main_category.thomas != "irrelevant") %>% 
+  filter(main_category.BERT != "irrelevant") %>%
+  droplevels()
 ```
 
 
@@ -214,7 +222,6 @@ Bert's labels:
 
 ```{r}
 xtabs(~main_category.BERT, db4)
-
 ```
 
 Hannah's labels: 
@@ -240,30 +247,22 @@ xtabs(~main_category, dt4)
 ```
 
 
-# Hannah and BERT
-
-```{r}
-#filter (remove) the irrelevant category for calculating Kappa (only predictions for 5 relevant ones included in BERT)
-d4r = d4 %>%  #data round 4 relevant categories only
-  filter(main_category.hannah != "irrelevant") %>% 
-  filter(main_category.thomas != "irrelevant") %>% 
-  filter(main_category.BERT != "irrelevant") %>%
-  droplevels()
-```
+# Hannah (coder 1) and BERT
 
 ## 6 categories (including irrelevant)
 
 ```{r}
 caret::confusionMatrix(d4$main_category.BERT, d4$main_category.hannah)
+round(DescTools::CohenKappa(d4$main_category.BERT, d4$main_category.hannah, conf.level = 0.95), 2)
 ```
 
 ##  5 categories with new finetuned BERT model
 
 ```{r}
-
 caret::confusionMatrix(d4r$main_category.BERT, d4r$main_category.hannah)
 # #for 5 categoriew with previous BERT model, not finetuned
 # caret::confusionMatrix(d4r$predictionBERT1, d4r$main_category.hannah)
+round(DescTools::CohenKappa(d4r$main_category.BERT, d4r$main_category.hannah, conf.level = 0.95), 2)
 ```
 
 ## Analysis of confusion matrix: 
@@ -276,16 +275,19 @@ d4 %>%
 ```
 
 
-# Thomas and BERT
+# Thomas (coder 2) and BERT
 
 6 classes (including irrelevant)
+
 ```{r}
 confusionMatrix(d4$main_category.BERT, d4$main_category.thomas)
+round(DescTools::CohenKappa(d4$main_category.BERT, d4$main_category.thomas, conf.level = 0.95), 2)
 ```
 
 5 classes (excluding irrelevant)
 ```{r}
 confusionMatrix(d4r$main_category.BERT, d4r$main_category.thomas)
+round(DescTools::CohenKappa(d4r$main_category.BERT, d4r$main_category.thomas, conf.level = 0.95), 2)
 ```
 
 
@@ -293,20 +295,24 @@ confusionMatrix(d4r$main_category.BERT, d4r$main_category.thomas)
 
 ## 6 main categories (including irrelevant)
 ```{r}
-confusionMatrix(d4$main_category.hannah, d4$main_category.thomas)
+round(confusionMatrix(d4$main_category.hannah, d4$main_category.thomas)$overall, 2)
+round(DescTools::CohenKappa(d4$main_category.hannah, d4$main_category.thomas, conf.level = 0.95), 2)
 ```
 
 ##  5 categories of interest
 
 ```{r}
 confusionMatrix(d4r$main_category.hannah, d4r$main_category.thomas)
+round(DescTools::CohenKappa(d4r$main_category.hannah, d4r$main_category.thomas, conf.level = 0.95), 2)
 ```
 
 
 ## 12 categories
 
+
 ```{r}
-irr::kappa2(d4[c("category.hannah", "category.thomas")])
+#details on cohen's kappa, unweighted: https://www.datanovia.com/en/lessons/cohens-kappa-in-r-for-two-categorical-variables/
+DescTools::CohenKappa(d4$category.hannah, y = d4$category.thomas, conf.level = 0.95)
 ```
 
 
@@ -317,12 +323,16 @@ Macro-average:
 ```{r}
 caret::confusionMatrix(d4$about_suicide.hannah, d4$about_suicide.thomas, positive="Yes")$table
 round(caret::confusionMatrix(d4$about_suicide.hannah, d4$about_suicide.thomas, positive="Yes")$overall[c("Accuracy", "Kappa")],2)
+round(DescTools::CohenKappa(d4$about_suicide.hannah, d4$about_suicide.thomas, conf.level = 0.95), 2)
 ```
 Macro-average without the category suicide other: 
 
 ```{r}
+d4_no_other = d4 %>% 
+  filter(category.hannah !="suicide_other")
 caret::confusionMatrix(d4_no_other$about_suicide.hannah, d4_no_other$about_suicide.thomas, positive="Yes")$table
-round(caret::confusionMatrix(d4_no_other$about_suicide.hannah, d4_no_other$about_suicide.thomas, positive="Yes")$overall[c("Accuracy", "Kappa")],2)
+round(caret::confusionMatrix(d4_no_other$about_suicide.hannah, d4_no_other$about_suicide.thomas, positive="Yes")$overall[c("Accuracy", "AccuracyUpper", "AccuracyLower")],2)
+round(DescTools::CohenKappa(d4_no_other$about_suicide.hannah, d4_no_other$about_suicide.thomas, conf.level = 0.95), 2)
 ```
 
 
@@ -357,5 +367,12 @@ byclass
 
 ```{r, save dataset with predictions and human labels}
 save(d4, file  = '../reliability_datasets/round4_150x5_suicide_human&model_BERT_finetuned.R')
+```
+
+
+# Statistical comparisons of Cronbach'alpha human vs. model
+
+```{r}
+
 ```
 
