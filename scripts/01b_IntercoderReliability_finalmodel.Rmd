@@ -36,8 +36,14 @@ Goal was to have at least 100 true instances for each class.
 db4 <- read.csv('../reliability_datasets/round4_150x5_suicide_withpredictions_BERT_finetuned.csv', stringsAsFactors = F, sep = '\t',  colClasses = "character") %>% 
   mutate(BERT_best_new = as.factor(BERT_best_new),
          predictionBERT1 = as.factor(predictionBERT1),
+         predictions_about_suicide = as.factor(predictions_about_suicide),
          id = as.character(id)) %>% 
-  rename(main_category.BERT = BERT_best_new)
+  rename(main_category.BERT = BERT_best_new, 
+         about_suicide.BERT = predictions_about_suicide) %>% 
+  #delete column with rownumbers
+  select(-X) %>% 
+  #recode the levels of about suicide to No and Yes
+  mutate(about_suicide.BERT = recode(about_suicide.BERT, correct="Yes", false="No"))
 # select(-predictionBERT1) #these are predictions by a previous, less good version of our model
 #Hannah's labels
 dh4 <- read.csv('../reliability_datasets/round4_150x5_suicide_Hannah_complete_IDsrepaired.csv', stringsAsFactors = T,  colClasses = "character")  %>% 
@@ -178,11 +184,14 @@ d4 = db4 %>%
            category.thomas  = recode(detailed_category.thomas,  coping1 = "coping", coping3 = "coping", suicidality1 = "suicidality", suicidality3 = "suicidality" ))
 #order columns
 d4 = d4[, c("id", "time", "text", 
-            "main_category.BERT", "predictionBERT1", "category.hannah", "category.thomas", 
+            "main_category.BERT", "predictionBERT1", 
             "main_category.hannah",  "main_category.thomas", 
-            "category2.hannah", "detailed_category.hannah", "focus.hannah", "focus.thomas",   "type.hannah",
+            "category.hannah", "category.thomas", 
+            "category2.hannah", "detailed_category.hannah", 
+            "focus.hannah", "focus.thomas",   "type.hannah",
             "notserious_unclear.hannah", "notserious_unclear.thomas", 
-            "notes.hannah", "notes.thomas")]
+            "notes.hannah", "notes.thomas", 
+              "about_suicide.BERT")]
 
 #order factor levels of main category
 #order of categories for plots
@@ -202,8 +211,6 @@ dh4 = dh4 %>%
   mutate(main_category = factor(main_category, levels = ord_mcategory, labels = ord_mcategory))
 dt4 = dt4 %>% 
   mutate(main_category = factor(main_category, levels = ord_mcategory, labels = ord_mcategory))
-str(d4)
-levels(d4$category.thomas)
 
 #filter (remove) the irrelevant category for calculating Kappa (only predictions for 5 relevant ones included in BERT)
 d4r = d4 %>%  #data round 4 relevant categories only
@@ -211,6 +218,10 @@ d4r = d4 %>%  #data round 4 relevant categories only
   filter(main_category.thomas != "irrelevant") %>% 
   filter(main_category.BERT != "irrelevant") %>%
   droplevels()
+```
+
+```{r}
+summary(d4)
 ```
 
 
@@ -247,16 +258,17 @@ xtabs(~main_category, dt4)
 ```
 
 
-# Hannah (coder 1) and BERT
+# Detailed content categories (6-12 classes)
+## Hannah (coder 1) and BERT
 
-## 6 categories (including irrelevant)
+### 6 categories (including irrelevant)
 
 ```{r}
 caret::confusionMatrix(d4$main_category.BERT, d4$main_category.hannah)
 round(DescTools::CohenKappa(d4$main_category.BERT, d4$main_category.hannah, conf.level = 0.95), 2)
 ```
 
-##  5 categories with new finetuned BERT model
+###  5 categories with new finetuned BERT model
 
 ```{r}
 caret::confusionMatrix(d4r$main_category.BERT, d4r$main_category.hannah)
@@ -265,7 +277,7 @@ caret::confusionMatrix(d4r$main_category.BERT, d4r$main_category.hannah)
 round(DescTools::CohenKappa(d4r$main_category.BERT, d4r$main_category.hannah, conf.level = 0.95), 2)
 ```
 
-## Analysis of confusion matrix: 
+### Analysis of confusion matrix: 
 
 - model mistakes 11 out of 110 coping tweets as suicidality. Are these the past suicidality tweets?
 
@@ -275,7 +287,7 @@ d4 %>%
 ```
 
 
-# Thomas (coder 2) and BERT
+## Thomas (coder 2) and BERT
 
 6 classes (including irrelevant)
 
@@ -291,24 +303,22 @@ round(DescTools::CohenKappa(d4r$main_category.BERT, d4r$main_category.thomas, co
 ```
 
 
-# Human inter-coder reliability
+## Human inter-coder reliability
 
-## 6 main categories (including irrelevant)
+### 6 main categories (including irrelevant)
 ```{r}
 round(confusionMatrix(d4$main_category.hannah, d4$main_category.thomas)$overall, 2)
 round(DescTools::CohenKappa(d4$main_category.hannah, d4$main_category.thomas, conf.level = 0.95), 2)
 ```
 
-##  5 categories of interest
+###  5 categories of interest
 
 ```{r}
 confusionMatrix(d4r$main_category.hannah, d4r$main_category.thomas)
 round(DescTools::CohenKappa(d4r$main_category.hannah, d4r$main_category.thomas, conf.level = 0.95), 2)
 ```
 
-
-## 12 categories
-
+### 12 categories
 
 ```{r}
 #details on cohen's kappa, unweighted: https://www.datanovia.com/en/lessons/cohens-kappa-in-r-for-two-categorical-variables/
@@ -316,39 +326,7 @@ DescTools::CohenKappa(d4$category.hannah, y = d4$category.thomas, conf.level = 0
 ```
 
 
-## 2 categories: About actual suicide
-
-Macro-average: 
-
-```{r}
-caret::confusionMatrix(d4$about_suicide.hannah, d4$about_suicide.thomas, positive="Yes")$table
-round(caret::confusionMatrix(d4$about_suicide.hannah, d4$about_suicide.thomas, positive="Yes")$overall[c("Accuracy", "Kappa")],2)
-round(DescTools::CohenKappa(d4$about_suicide.hannah, d4$about_suicide.thomas, conf.level = 0.95), 2)
-```
-Macro-average without the category suicide other: 
-
-```{r}
-d4_no_other = d4 %>% 
-  filter(category.hannah !="suicide_other")
-caret::confusionMatrix(d4_no_other$about_suicide.hannah, d4_no_other$about_suicide.thomas, positive="Yes")$table
-round(caret::confusionMatrix(d4_no_other$about_suicide.hannah, d4_no_other$about_suicide.thomas, positive="Yes")$overall[c("Accuracy", "AccuracyUpper", "AccuracyLower")],2)
-round(DescTools::CohenKappa(d4_no_other$about_suicide.hannah, d4_no_other$about_suicide.thomas, conf.level = 0.95), 2)
-```
-
-
-Per category: About suicide
-
-```{r}
-round(caret::confusionMatrix(d4$about_suicide.hannah, d4$about_suicide.thomas, positive="Yes")$byClass[c("Precision", "Recall", "F1")], 2)
-```
-
-Off-topic 
-
-```{r}
-round(caret::confusionMatrix(d4$about_suicide.hannah, d4$about_suicide.thomas, positive="No")$byClass[c("Precision", "Recall", "F1")], 2)
-```
-
-# Summarize results for paper Table 4
+# Summarize 6 category results for paper Table 4
 
 ```{r}
 byclass = data.frame(
@@ -370,9 +348,100 @@ save(d4, file  = '../reliability_datasets/round4_150x5_suicide_human&model_BERT_
 ```
 
 
-# Statistical comparisons of Cronbach'alpha human vs. model
+# 2 categories: About actual suicide vs. off-topic
+
+## Macro-average performance across both categories: 
+
+### Hannah (coder 1) & BERT
 
 ```{r}
+caret::confusionMatrix(d4$about_suicide.BERT, d4$about_suicide.hannah, positive="Yes")$table
+round(caret::confusionMatrix(d4$about_suicide.BERT, d4$about_suicide.hannah, positive="Yes")$overall[c("Accuracy", "Kappa")],2)
+round(DescTools::CohenKappa(d4$about_suicide.BERT, d4$about_suicide.hannah, conf.level = 0.95), 2)
+```
 
+### Thomas (coder 2) & BERT
+
+```{r}
+caret::confusionMatrix(d4$about_suicide.BERT, d4$about_suicide.thomas, positive="Yes")$table
+round(caret::confusionMatrix(d4$about_suicide.BERT, d4$about_suicide.thomas, positive="Yes")$overall[c("Accuracy", "Kappa")],2)
+round(DescTools::CohenKappa(d4$about_suicide.BERT, d4$about_suicide.thomas, conf.level = 0.95), 2)
+```
+
+### Human inter-rater reliability
+
+```{r}
+caret::confusionMatrix(d4$about_suicide.hannah, d4$about_suicide.thomas, positive="Yes")$table
+round(caret::confusionMatrix(d4$about_suicide.hannah, d4$about_suicide.thomas, positive="Yes")$overall[c("Accuracy", "Kappa")],2)
+round(DescTools::CohenKappa(d4$about_suicide.hannah, d4$about_suicide.thomas, conf.level = 0.95), 2)
+```
+
+
+## Macro-average without the category suicide other: 
+
+### Hannah (coder 1) & BERT
+
+```{r}
+d4_no_other = d4 %>% 
+  filter(category.hannah !="suicide_other")
+caret::confusionMatrix(d4_no_other$about_suicide.BERT, d4_no_other$about_suicide.hannah, positive="Yes")$table
+round(caret::confusionMatrix(d4_no_other$about_suicide.BERT, d4_no_other$about_suicide.hannah, positive="Yes")$overall[c("Accuracy", "AccuracyUpper", "AccuracyLower")],2)
+round(DescTools::CohenKappa(d4_no_other$about_suicide.BERT, d4_no_other$about_suicide.hannah, conf.level = 0.95), 2)
+```
+
+### Thomas (coder 2) & BERT
+
+```{r}
+d4_no_other = d4 %>% 
+  filter(category.hannah !="suicide_other")
+caret::confusionMatrix(d4_no_other$about_suicide.BERT, d4_no_other$about_suicide.thomas, positive="Yes")$table
+round(caret::confusionMatrix(d4_no_other$about_suicide.BERT, d4_no_other$about_suicide.thomas, positive="Yes")$overall[c("Accuracy", "AccuracyUpper", "AccuracyLower")],2)
+round(DescTools::CohenKappa(d4_no_other$about_suicide.BERT, d4_no_other$about_suicide.thomas, conf.level = 0.95), 2)
+```
+
+### Human inter-rater reliability
+
+```{r}
+d4_no_other = d4 %>% 
+  filter(category.hannah !="suicide_other")
+caret::confusionMatrix(d4_no_other$about_suicide.hannah, d4_no_other$about_suicide.thomas, positive="Yes")$table
+round(caret::confusionMatrix(d4_no_other$about_suicide.hannah, d4_no_other$about_suicide.thomas, positive="Yes")$overall[c("Accuracy", "AccuracyUpper", "AccuracyLower")],2)
+round(DescTools::CohenKappa(d4_no_other$about_suicide.hannah, d4_no_other$about_suicide.thomas, conf.level = 0.95), 2)
+```
+
+
+## Per category: About suicide
+
+### Hannah (coder 1) & BERT
+
+```{r}
+round(caret::confusionMatrix(d4$about_suicide.BERT, d4$about_suicide.hannah, positive="Yes")$byClass[c("Precision", "Recall", "F1")], 2)
+```
+
+### Thomas (coder 2) & BERT
+
+```{r}
+round(caret::confusionMatrix(d4$about_suicide.BERT, d4$about_suicide.thomas, positive="Yes")$byClass[c("Precision", "Recall", "F1")], 2)
+```
+
+### Human inter-rater reliability
+
+```{r}
+round(caret::confusionMatrix(d4$about_suicide.hannah, d4$about_suicide.thomas, positive="Yes")$byClass[c("Precision", "Recall", "F1")], 2)
+```
+
+## Per category: Off-topic 
+
+### Hannah (coder 1) & BERT
+```{r}
+round(caret::confusionMatrix(d4$about_suicide.BERT, d4$about_suicide.hannah, positive="No")$byClass[c("Precision", "Recall", "F1")], 2)
+```
+### Thomas (coder 2) & BERT
+```{r}
+round(caret::confusionMatrix(d4$about_suicide.BERT, d4$about_suicide.thomas, positive="No")$byClass[c("Precision", "Recall", "F1")], 2)
+```
+### Human inter-rater reliability
+```{r}
+round(caret::confusionMatrix(d4$about_suicide.hannah, d4$about_suicide.thomas, positive="No")$byClass[c("Precision", "Recall", "F1")], 2)
 ```
 
