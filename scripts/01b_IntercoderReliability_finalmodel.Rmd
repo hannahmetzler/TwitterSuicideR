@@ -45,6 +45,8 @@ db4 <- read.csv('../reliability_datasets/round4_150x5_suicide_withpredictions_BE
   #recode the levels of about suicide to No and Yes
   mutate(about_suicide.BERT = recode(about_suicide.BERT, correct="Yes", false="No"))
 # select(-predictionBERT1) #these are predictions by a previous, less good version of our model
+
+
 #Hannah's labels
 dh4 <- read.csv('../reliability_datasets/round4_150x5_suicide_Hannah_complete_IDsrepaired.csv', stringsAsFactors = T,  colClasses = "character")  %>% 
   #delete text columns, messed up by excel, use text from BERT predictions dataset. #delete text columns split into multiple columns in Hannah file
