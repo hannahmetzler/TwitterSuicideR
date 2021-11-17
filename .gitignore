@@ -16,3 +16,4 @@ models/
 *.Rproj
 scripts_Konstantin
 scripts_Konstantin/
+*tar.gz

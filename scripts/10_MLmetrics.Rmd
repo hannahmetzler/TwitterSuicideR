@@ -1,0 +1,169 @@
+res =---
+title: "ML metrics"
+author: "Hannah Metzler"
+date: "16/11/2021"
+output: 
+  pdf_document:
+    df_print: kable
+    keep_tex: true
+url_colour: blue
+always_allow_html: yes
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, message=FALSE, warning=FALSE)
+Sys.setlocale("LC_ALL", 'en_US.UTF-8')
+options(scipen=99)
+library(dplyr)
+library(caret)
+# library(epiR)
+library(boot)
+```
+
+# Caculate per class metrics that were missing in Hubert's dataset, for different models
+
+* Data from Hubert's excel file (Twitter Results Hubert), sheet AboutSuicide/Not column J
+
+## About suicide, Bert unbalanced dataset, recommended settings, 3e-5, 5
+
+```{r setup, include=FALSE}
+labels <- c("aboutsuicide", "notsuicide")
+truth <- factor(rep(labels, times = c(455+22, 58+90)),
+                levels = (labels))
+pred <- factor( c(rep(labels, times = c(455, 22)),
+                  rep(labels, times = c(58, 90))),               
+                levels = (labels))
+xtab <- table(pred, truth)
+```
+
+* this fits Hubert's stats here: https://imgur.com/AwBYNoS
+* Accuracy = average accuracy across both classes
+* the other metrics (in last paragraph) are for the positive class
+* positive pred value = precision
+* sensitivity = recall
+
+```{r setup, include=FALSE}
+average = caret::confusionMatrix(xtab, positive = "notsuicide")$overall[c("Accuracy", "AccuracyLower", "AccuracyUpper")]
+  byclass = round(data.frame(
+  aboutsuicide = caret::confusionMatrix(xtab, positive = "aboutsuicide")$byClass[c("Precision", "Recall", "F1")],
+  notsuicide = caret::confusionMatrix(xtab, positive = "notsuicide")$byClass[c("Precision", "Recall", "F1")]), 2)
+# write.csv(file = "output/ML_byclass_performance.csv", t(byclass))
+```
+
+# About suicide,BERT unbalanced (1e-5, 10, 1) - final model reported in the paper 
+
+```{r setup, include=FALSE}
+####
+labels <- c("aboutsuicide", "notsuicide")
+truth <- factor(rep(labels, times = c(452+25, 49+99)),
+                levels = (labels))
+pred <- factor( c(rep(labels, times = c(452, 25)),
+                  rep(labels, times = c(49, 99))),               
+  levels = (labels))
+xtab <- table(pred, truth)
+average = caret::confusionMatrix(xtab, positive = "notsuicide")$overall[c("Accuracy", "AccuracyLower", "AccuracyUpper")]
+byclass = round(data.frame(
+  aboutsuicide = caret::confusionMatrix(xtab, positive = "aboutsuicide")$byClass[c("Precision", "Recall", "F1")],
+  notsuicide = caret::confusionMatrix(xtab, positive = "notsuicide")$byClass[c("Precision", "Recall", "F1")]), 2)
+# write.csv(file = "output/ML_byclass_performance_about_suicide.csv", t(byclass))
+```
+
+# XLNet 
+
+```{r setup, include=FALSE}
+labels <- c("aboutsuicide", "notsuicide")
+truth <- factor(rep(labels, times = c(448+29,46+102)),
+                levels = (labels))
+pred <- factor( c(rep(labels, times = c(448,	29)),
+                  rep(labels, times = c(46,	102))),               
+                levels = (labels))
+xtab <- table(pred, truth)
+average = caret::confusionMatrix(xtab, positive = "notsuicide")$overall[c("Accuracy", "AccuracyLower", "AccuracyUpper")]
+byclass = round(data.frame(
+  aboutsuicide = caret::confusionMatrix(xtab, positive = "aboutsuicide")$byClass[c("Precision", "Recall", "F1")],
+  notsuicide = caret::confusionMatrix(xtab, positive = "notsuicide")$byClass[c("Precision", "Recall", "F1")]), 2)
+# write.csv(file = "output/ML_byclass_performance_about_suicide.csv", t(byclass))
+```
+
+# TFIDF
+
+```{r setup, include=FALSE}
+labels <- c("aboutsuicide", "notsuicide")
+truth <- factor(rep(labels, times = c(417+60,60+88)),
+                levels = (labels))
+pred <- factor( c(rep(labels, times = c(417,60)),
+                  rep(labels, times = c(60,88))),               
+                levels = (labels))
+xtab <- table(pred, truth)
+average = caret::confusionMatrix(xtab, positive = "notsuicide")$overall[c("Accuracy", "AccuracyLower", "AccuracyUpper")]
+byclass = round(data.frame(
+  aboutsuicide = caret::confusionMatrix(xtab, positive = "aboutsuicide")$byClass[c("Precision", "Recall", "F1")],
+  notsuicide = caret::confusionMatrix(xtab, positive = "notsuicide")$byClass[c("Precision", "Recall", "F1")]), 2)
+# write.csv(file = "output/ML_byclass_performance_about_suicide.csv", t(byclass))
+```
+
+
+# Performance scores with confidence intervals for all machine learning models
+
+
+Used resources: 
+* intro to boot package: https://www.geeksforgeeks.org/bootstrap-confidence-interval-with-r-programming/
+* on the boot package with multiple statistics at once (Precision, Recall, F1): https://stackoverflow.com/questions/51371307/obtaining-plots-and-95-cis-from-boot-function-with-multiple-statistics
+* 
+
+
+
+```{r, read in datafiles}
+val_6cat = read.csv('../results/predictions_6_classes_validation_set_notext.csv')
+test_6cat = read.csv('../results/predictions_6_classes_test_set_notext.csv')
+val_aboutsuicide = read.csv('../results/predictions_about_suicide_validation_set_notext.csv')
+test_aboutsuicide = read.csv('../results/predictions_about_suicide_test_set_notext.csv')
+```
+
+## 6 categories in validation set
+
+```{r}
+confusionMatrix(val_6cat$true_label, val_6cat$predicted_label)
+```
+
+### Bootstrapped confidence intervals for each class: 
+
+```{r}
+#function to calculate the statistics precision, recall, F1, accuracy for each class
+mlperf.fun = function(data, idx, class){
+  df <- data[idx, ]
+  #out of the confusion Matrix, we only select the byClass metrics, here for only one class at a time
+  perf_class = confusionMatrix(df$true_label, df$predicted_label)$byClass[paste("Class:", class), 
+                                                                          c("Precision", "Recall", "F1")]
+  return(perf_class)
+}
+```
+
+*Test set*
+
+```{r}
+#create empty dataframe for all metrics plus CI
+  df = data.frame(matrix(NA, nrow = 6, ncol = 9), row.names =c("awareness","coping", "irrelevant","prevention", "suicidality", "werther"))
+  names(df) =  c("Precision", "PrCiLow", "PrCiUp","Recall","ReCiLow", "ReCiUp", "F1", "F1CiLow", "F1CiUp")
+  
+#now run the bootstrap and calculate CIs for each class
+for(iclass in c("awareness","coping", "irrelevant","prevention", "suicidality", "werther")){
+ 
+  #calculate metrics in 1000 bootstrapped samples
+  set.seed(42)
+  bootstrap = boot(test_6cat,mlperf.fun, class=iclass, R=1000)
+  
+  #save the bootstrapped statistics into dataframe, the row for iclass
+  df[iclass, c("Precision", "Recall", "F1")] = bootstrap$t0
+  
+  #calculate ci's for each metric (index 1, 2, 3)
+  precision_ci = boot.ci(boot.out = bootstrap, type = c("norm"), index=1)
+  df[iclass, c("PrCiLow", "PrCiUp")] = c(precision_ci$normal[[2]], precision_ci$normal[[3]])
+  recall_ci = boot.ci(boot.out = bootstrap, type = c("norm"), index=2)
+  df[iclass, c("ReCiLow", "ReCiUp")] = c(recall_ci$normal[[2]],recall_ci$normal[[3]])
+  f1_ci = boot.ci(boot.out = bootstrap, type = c("norm"), index=3)
+  df[iclass, c("F1CiLow", "F1CiUp")] = c(f1_ci$normal[[2]], f1_ci$normal[[3]])
+}
+df
+dim(test_6cat)
+```

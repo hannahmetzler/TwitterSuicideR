@@ -27,7 +27,7 @@ library(cocron)
 
 Codes by Hannah and Thomas and BERT used for the final results. Coding into the 1 small categories, but simplify to 5 main categories (Coping, Suicidality, Awareness, Prevention, Werther) before evaluating the reliability. No evaluation for the irrelevant class. 
 
-Goal was to have at least 100 true instances for each class. 
+Goal was to have at least 100 true instances for each class. (We made predictions for each class with the BERT model with recommended settings by Devlin et al. 2019, and selected 150 tweets for each relevant main category. Eventually, we repeated the predictions with a better model, on the same selected tweets. Therefore, the total number of machine labels is not exactly 150 per class.)
 
 ```{r, preprocess data BERT and Hannah}
 #Load and clean the data
@@ -285,7 +285,7 @@ round(DescTools::CohenKappa(d4r$main_category.BERT, d4r$main_category.hannah, co
 
 ```{r}
 d4 %>% 
-  filter(main_category.hannah == "coping" & main_category.bert)
+  filter(main_category.hannah == "coping" & main_category.BERT)
 ```
 
 
