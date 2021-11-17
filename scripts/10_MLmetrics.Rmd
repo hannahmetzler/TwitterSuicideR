@@ -114,10 +114,10 @@ Used resources:
 
 
 ```{r, read in datafiles}
-val_6cat = read.csv('../results/predictions_6_classes_validation_set_notext.csv')
-test_6cat = read.csv('../results/predictions_6_classes_test_set_notext.csv')
-val_aboutsuicide = read.csv('../results/predictions_about_suicide_validation_set_notext.csv')
-test_aboutsuicide = read.csv('../results/predictions_about_suicide_test_set_notext.csv')
+val_6cat = read.csv('../results/predictions_BERT_6_classes_validation_set_notext.csv')
+test_6cat = read.csv('../results/predictions_BERT_6_classes_test_set_notext.csv')
+val_aboutsuicide = read.csv('../results/predictions_BERT_about_suicide_validation_set_notext.csv')
+test_aboutsuicide = read.csv('../results/predictions_BERT_about_suicide_test_set_notext.csv')
 ```
 
 ## 6 categories in validation set
