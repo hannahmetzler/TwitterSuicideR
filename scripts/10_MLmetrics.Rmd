@@ -50,7 +50,7 @@ average = caret::confusionMatrix(xtab, positive = "notsuicide")$overall[c("Accur
 # write.csv(file = "output/ML_byclass_performance.csv", t(byclass))
 ```
 
-# About suicide,BERT unbalanced (1e-5, 10, 1) - final model reported in the paper 
+## About suicide,BERT unbalanced (1e-5, 10, 1) - final model reported in the paper 
 
 ```{r setup, include=FALSE}
 ####
@@ -68,7 +68,7 @@ byclass = round(data.frame(
 # write.csv(file = "output/ML_byclass_performance_about_suicide.csv", t(byclass))
 ```
 
-# XLNet 
+## XLNet 
 
 ```{r setup, include=FALSE}
 labels <- c("aboutsuicide", "notsuicide")
@@ -85,7 +85,7 @@ byclass = round(data.frame(
 # write.csv(file = "output/ML_byclass_performance_about_suicide.csv", t(byclass))
 ```
 
-# TFIDF
+## TFIDF
 
 ```{r setup, include=FALSE}
 labels <- c("aboutsuicide", "notsuicide")
@@ -103,17 +103,15 @@ byclass = round(data.frame(
 ```
 
 
-# Performance scores with confidence intervals for all machine learning models
+# Performance scores with confidence intervals for all machine learning models: BERT
 
 
 Used resources: 
 * intro to boot package: https://www.geeksforgeeks.org/bootstrap-confidence-interval-with-r-programming/
 * on the boot package with multiple statistics at once (Precision, Recall, F1): https://stackoverflow.com/questions/51371307/obtaining-plots-and-95-cis-from-boot-function-with-multiple-statistics
-* 
 
 
-
-```{r, read in datafiles}
+```{r, read in datafiles BERT}
 val_6cat = read.csv('../results/predictions_BERT_6_classes_validation_set_notext.csv')
 test_6cat = read.csv('../results/predictions_BERT_6_classes_test_set_notext.csv')
 val_aboutsuicide = read.csv('../results/predictions_BERT_about_suicide_validation_set_notext.csv')
@@ -166,4 +164,13 @@ for(iclass in c("awareness","coping", "irrelevant","prevention", "suicidality", 
 }
 df
 dim(test_6cat)
+```
+
+# XLNET: confidence intervals
+
+```{r, read in datafiles XLNET}
+val_6cat = read.csv('../results/predictions_XLNET_6_classes_validation_set.csv')
+test_6cat = read.csv('../results/predictions_XLNET_6_classes_test_set_notext.csv')
+val_aboutsuicide = read.csv('../results/predictions_XLNET_about_suicide_validation_set_notext.csv')
+test_aboutsuicide = read.csv('../results/predictions_XLNET_about_suicide_test_set_notext.csv')
 ```
