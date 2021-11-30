@@ -1,4 +1,4 @@
-res =---
+---
 title: "ML metrics"
 author: "Hannah Metzler"
 date: "16/11/2021"
@@ -18,138 +18,152 @@ library(dplyr)
 library(caret)
 # library(epiR)
 library(boot)
-```
 
-# Caculate per class metrics that were missing in Hubert's dataset, for different models
+#function for calculating bootstrapped CIs: 
 
-* Data from Hubert's excel file (Twitter Results Hubert), sheet AboutSuicide/Not column J
-
-## About suicide, Bert unbalanced dataset, recommended settings, 3e-5, 5
-
-```{r setup, include=FALSE}
-labels <- c("aboutsuicide", "notsuicide")
-truth <- factor(rep(labels, times = c(455+22, 58+90)),
-                levels = (labels))
-pred <- factor( c(rep(labels, times = c(455, 22)),
-                  rep(labels, times = c(58, 90))),               
-                levels = (labels))
-xtab <- table(pred, truth)
-```
-
-* this fits Hubert's stats here: https://imgur.com/AwBYNoS
-* Accuracy = average accuracy across both classes
-* the other metrics (in last paragraph) are for the positive class
-* positive pred value = precision
-* sensitivity = recall
-
-```{r setup, include=FALSE}
-average = caret::confusionMatrix(xtab, positive = "notsuicide")$overall[c("Accuracy", "AccuracyLower", "AccuracyUpper")]
-  byclass = round(data.frame(
-  aboutsuicide = caret::confusionMatrix(xtab, positive = "aboutsuicide")$byClass[c("Precision", "Recall", "F1")],
-  notsuicide = caret::confusionMatrix(xtab, positive = "notsuicide")$byClass[c("Precision", "Recall", "F1")]), 2)
-# write.csv(file = "output/ML_byclass_performance.csv", t(byclass))
-```
-
-## About suicide,BERT unbalanced (1e-5, 10, 1) - final model reported in the paper 
-
-```{r setup, include=FALSE}
-####
-labels <- c("aboutsuicide", "notsuicide")
-truth <- factor(rep(labels, times = c(452+25, 49+99)),
-                levels = (labels))
-pred <- factor( c(rep(labels, times = c(452, 25)),
-                  rep(labels, times = c(49, 99))),               
-  levels = (labels))
-xtab <- table(pred, truth)
-average = caret::confusionMatrix(xtab, positive = "notsuicide")$overall[c("Accuracy", "AccuracyLower", "AccuracyUpper")]
-byclass = round(data.frame(
-  aboutsuicide = caret::confusionMatrix(xtab, positive = "aboutsuicide")$byClass[c("Precision", "Recall", "F1")],
-  notsuicide = caret::confusionMatrix(xtab, positive = "notsuicide")$byClass[c("Precision", "Recall", "F1")]), 2)
-# write.csv(file = "output/ML_byclass_performance_about_suicide.csv", t(byclass))
-```
-
-## XLNet 
-
-```{r setup, include=FALSE}
-labels <- c("aboutsuicide", "notsuicide")
-truth <- factor(rep(labels, times = c(448+29,46+102)),
-                levels = (labels))
-pred <- factor( c(rep(labels, times = c(448,	29)),
-                  rep(labels, times = c(46,	102))),               
-                levels = (labels))
-xtab <- table(pred, truth)
-average = caret::confusionMatrix(xtab, positive = "notsuicide")$overall[c("Accuracy", "AccuracyLower", "AccuracyUpper")]
-byclass = round(data.frame(
-  aboutsuicide = caret::confusionMatrix(xtab, positive = "aboutsuicide")$byClass[c("Precision", "Recall", "F1")],
-  notsuicide = caret::confusionMatrix(xtab, positive = "notsuicide")$byClass[c("Precision", "Recall", "F1")]), 2)
-# write.csv(file = "output/ML_byclass_performance_about_suicide.csv", t(byclass))
-```
-
-## TFIDF
-
-```{r setup, include=FALSE}
-labels <- c("aboutsuicide", "notsuicide")
-truth <- factor(rep(labels, times = c(417+60,60+88)),
-                levels = (labels))
-pred <- factor( c(rep(labels, times = c(417,60)),
-                  rep(labels, times = c(60,88))),               
-                levels = (labels))
-xtab <- table(pred, truth)
-average = caret::confusionMatrix(xtab, positive = "notsuicide")$overall[c("Accuracy", "AccuracyLower", "AccuracyUpper")]
-byclass = round(data.frame(
-  aboutsuicide = caret::confusionMatrix(xtab, positive = "aboutsuicide")$byClass[c("Precision", "Recall", "F1")],
-  notsuicide = caret::confusionMatrix(xtab, positive = "notsuicide")$byClass[c("Precision", "Recall", "F1")]), 2)
-# write.csv(file = "output/ML_byclass_performance_about_suicide.csv", t(byclass))
-```
-
-
-# Performance scores with confidence intervals for all machine learning models: BERT
-
-
-Used resources: 
-* intro to boot package: https://www.geeksforgeeks.org/bootstrap-confidence-interval-with-r-programming/
-* on the boot package with multiple statistics at once (Precision, Recall, F1): https://stackoverflow.com/questions/51371307/obtaining-plots-and-95-cis-from-boot-function-with-multiple-statistics
-
-
-```{r, read in datafiles BERT}
-val_6cat = read.csv('../results/predictions_BERT_6_classes_validation_set_notext.csv')
-test_6cat = read.csv('../results/predictions_BERT_6_classes_test_set_notext.csv')
-val_aboutsuicide = read.csv('../results/predictions_BERT_about_suicide_validation_set_notext.csv')
-test_aboutsuicide = read.csv('../results/predictions_BERT_about_suicide_test_set_notext.csv')
-```
-
-## 6 categories in validation set
-
-```{r}
-confusionMatrix(val_6cat$true_label, val_6cat$predicted_label)
-```
-
-### Bootstrapped confidence intervals for each class: 
-
-```{r}
-#function to calculate the statistics precision, recall, F1, accuracy for each class
-mlperf.fun = function(data, idx, class){
+#function to calculate the statistics precision, recall, F1, accuracy for each of the 6 categories
+mlperf6.fun = function(data, idx, class){
   df <- data[idx, ]
   #out of the confusion Matrix, we only select the byClass metrics, here for only one class at a time
   perf_class = confusionMatrix(df$true_label, df$predicted_label)$byClass[paste("Class:", class), 
                                                                           c("Precision", "Recall", "F1")]
   return(perf_class)
 }
+
+#order of levels, function: 
+order_cat = c("suicidality", 'coping', "awareness", "prevention", "werther", "irrelevant" )
+order6cat = function(df){
+    df = df %>% 
+      mutate(true_label = factor(true_label, labels=order_cat, levels=order_cat), 
+      predicted_label = factor(predicted_label, labels=order_cat, levels=order_cat))
+    return(df)
+}
+
+#function to calculate the statistics for each of the 2 about suicide categories
+#function to calculate the statistics precision, recall, F1, accuracy for each class
+mlperf2.fun = function(data, idx, class){
+  df <- data[idx, ]
+   #out of the confusion Matrix, we only select the byClass metrics, here for only one class at a time
+  perf_class = confusionMatrix(df$true_label, df$predicted_label, positive=iclass)$byClass[c("Precision", "Recall", "F1")]
+
+  return(perf_class)
+}
 ```
 
-*Test set*
+
+
+# Caculate per class metrics that were missing in Hubert's dataset, for different models
+
+<!-- * Data from Hubert's excel file (Twitter Results Hubert), sheet AboutSuicide/Not column J -->
+
+<!-- ## About suicide, Bert unbalanced dataset, recommended settings, 3e-5, 5 -->
+
+<!-- ```{r setup, include=FALSE} -->
+<!-- labels <- c("aboutsuicide", "notsuicide") -->
+<!-- truth <- factor(rep(labels, times = c(455+22, 58+90)), -->
+<!--                 levels = (labels)) -->
+<!-- pred <- factor( c(rep(labels, times = c(455, 22)), -->
+<!--                   rep(labels, times = c(58, 90))),                -->
+<!--                 levels = (labels)) -->
+<!-- xtab <- table(pred, truth) -->
+<!-- ``` -->
+
+<!-- * this fits Hubert's stats here: https://imgur.com/AwBYNoS -->
+<!-- * Accuracy = average accuracy across both classes -->
+<!-- * the other metrics (in last paragraph) are for the positive class -->
+<!-- * positive pred value = precision -->
+<!-- * sensitivity = recall -->
+
+<!-- ```{r setup, include=FALSE} -->
+<!-- average = caret::confusionMatrix(xtab, positive = "notsuicide")$overall[c("Accuracy", "AccuracyLower", "AccuracyUpper")] -->
+<!--   byclass = round(data.frame( -->
+<!--   aboutsuicide = caret::confusionMatrix(xtab, positive = "aboutsuicide")$byClass[c("Precision", "Recall", "F1")], -->
+<!--   notsuicide = caret::confusionMatrix(xtab, positive = "notsuicide")$byClass[c("Precision", "Recall", "F1")]), 2) -->
+<!-- # write.csv(file = "output/ML_byclass_performance.csv", t(byclass)) -->
+<!-- ``` -->
+
+<!-- ## About suicide,BERT unbalanced (1e-5, 10, 1) - final model reported in the paper  -->
+
+<!-- ```{r setup, include=FALSE} -->
+<!-- #### -->
+<!-- labels <- c("aboutsuicide", "notsuicide") -->
+<!-- truth <- factor(rep(labels, times = c(452+25, 49+99)), -->
+<!--                 levels = (labels)) -->
+<!-- pred <- factor( c(rep(labels, times = c(452, 25)), -->
+<!--                   rep(labels, times = c(49, 99))),                -->
+<!--   levels = (labels)) -->
+<!-- xtab <- table(pred, truth) -->
+<!-- average = caret::confusionMatrix(xtab, positive = "notsuicide")$overall[c("Accuracy", "AccuracyLower", "AccuracyUpper")] -->
+<!-- byclass = round(data.frame( -->
+<!--   aboutsuicide = caret::confusionMatrix(xtab, positive = "aboutsuicide")$byClass[c("Precision", "Recall", "F1")], -->
+<!--   notsuicide = caret::confusionMatrix(xtab, positive = "notsuicide")$byClass[c("Precision", "Recall", "F1")]), 2) -->
+<!-- # write.csv(file = "output/ML_byclass_performance_about_suicide.csv", t(byclass)) -->
+<!-- ``` -->
+
+<!-- ## XLNet  -->
+
+<!-- ```{r setup, include=FALSE} -->
+<!-- labels <- c("aboutsuicide", "notsuicide") -->
+<!-- truth <- factor(rep(labels, times = c(448+29,46+102)), -->
+<!--                 levels = (labels)) -->
+<!-- pred <- factor( c(rep(labels, times = c(448,	29)), -->
+<!--                   rep(labels, times = c(46,	102))),                -->
+<!--                 levels = (labels)) -->
+<!-- xtab <- table(pred, truth) -->
+<!-- average = caret::confusionMatrix(xtab, positive = "notsuicide")$overall[c("Accuracy", "AccuracyLower", "AccuracyUpper")] -->
+<!-- byclass = round(data.frame( -->
+<!--   aboutsuicide = caret::confusionMatrix(xtab, positive = "aboutsuicide")$byClass[c("Precision", "Recall", "F1")], -->
+<!--   notsuicide = caret::confusionMatrix(xtab, positive = "notsuicide")$byClass[c("Precision", "Recall", "F1")]), 2) -->
+<!-- # write.csv(file = "output/ML_byclass_performance_about_suicide.csv", t(byclass)) -->
+<!-- ``` -->
+
+<!-- ## TFIDF -->
+
+<!-- ```{r setup, include=FALSE} -->
+<!-- labels <- c("aboutsuicide", "notsuicide") -->
+<!-- truth <- factor(rep(labels, times = c(417+60,60+88)), -->
+<!--                 levels = (labels)) -->
+<!-- pred <- factor( c(rep(labels, times = c(417,60)), -->
+<!--                   rep(labels, times = c(60,88))),                -->
+<!--                 levels = (labels)) -->
+<!-- xtab <- table(pred, truth) -->
+<!-- average = caret::confusionMatrix(xtab, positive = "notsuicide")$overall[c("Accuracy", "AccuracyLower", "AccuracyUpper")] -->
+<!-- byclass = round(data.frame( -->
+<!--   aboutsuicide = caret::confusionMatrix(xtab, positive = "aboutsuicide")$byClass[c("Precision", "Recall", "F1")], -->
+<!--   notsuicide = caret::confusionMatrix(xtab, positive = "notsuicide")$byClass[c("Precision", "Recall", "F1")]), 2) -->
+<!-- # write.csv(file = "output/ML_byclass_performance_about_suicide.csv", t(byclass)) -->
+<!-- ``` -->
+
+
+# BERT: Performance scores with confidence intervals
+
+Used resources to calculate CIs: 
+* intro to boot package: https://www.geeksforgeeks.org/bootstrap-confidence-interval-with-r-programming/
+* on the boot package with multiple statistics at once (Precision, Recall, F1): https://stackoverflow.com/questions/51371307/obtaining-plots-and-95-cis-from-boot-function-with-multiple-statistics
+
+
+```{r, read in datafiles BERT}
+val_6cat = order6cat(read.csv('../results/predictions_BERT_6_classes_validation_set_notext.csv'))
+test_6cat = order6cat(read.csv('../results/predictions_BERT_6_classes_test_set_notext.csv'))
+val_aboutsuicide = read.csv('../results/predictions_BERT_about_suicide_validation_set_notext.csv')
+test_aboutsuicide = read.csv('../results/predictions_BERT_about_suicide_test_set_notext.csv')
+```
+
+## 6 categories
+
+### BERT test set
 
 ```{r}
 #create empty dataframe for all metrics plus CI
-  df = data.frame(matrix(NA, nrow = 6, ncol = 9), row.names =c("awareness","coping", "irrelevant","prevention", "suicidality", "werther"))
-  names(df) =  c("Precision", "PrCiLow", "PrCiUp","Recall","ReCiLow", "ReCiUp", "F1", "F1CiLow", "F1CiUp")
+df = data.frame(matrix(NA, nrow = 6, ncol = 9), row.names =c("suicidality", 'coping', "awareness", "prevention", "werther", "irrelevant"))
+names(df) =  c("Precision", "PrCiLow", "PrCiUp","Recall","ReCiLow", "ReCiUp", "F1", "F1CiLow", "F1CiUp")
   
 #now run the bootstrap and calculate CIs for each class
-for(iclass in c("awareness","coping", "irrelevant","prevention", "suicidality", "werther")){
+for(iclass in c("suicidality", 'coping', "awareness", "prevention", "werther", "irrelevant")){
  
   #calculate metrics in 1000 bootstrapped samples
   set.seed(42)
-  bootstrap = boot(test_6cat,mlperf.fun, class=iclass, R=1000)
+  bootstrap = boot(test_6cat, mlperf6.fun, class=iclass, R=1000)
   
   #save the bootstrapped statistics into dataframe, the row for iclass
   df[iclass, c("Precision", "Recall", "F1")] = bootstrap$t0
@@ -162,15 +176,398 @@ for(iclass in c("awareness","coping", "irrelevant","prevention", "suicidality", 
   f1_ci = boot.ci(boot.out = bootstrap, type = c("norm"), index=3)
   df[iclass, c("F1CiLow", "F1CiUp")] = c(f1_ci$normal[[2]], f1_ci$normal[[3]])
 }
+
+df["macro",] = colMeans(df)
 df
-dim(test_6cat)
+cis_BERT_6cat_test = df
+write.csv(cis_BERT_6cat_test, "../results/cis_BERT_6cat_test.csv")
 ```
 
-# XLNET: confidence intervals
+### BERT validation set
 
-```{r, read in datafiles XLNET}
-val_6cat = read.csv('../results/predictions_XLNET_6_classes_validation_set.csv')
-test_6cat = read.csv('../results/predictions_XLNET_6_classes_test_set_notext.csv')
-val_aboutsuicide = read.csv('../results/predictions_XLNET_about_suicide_validation_set_notext.csv')
-test_aboutsuicide = read.csv('../results/predictions_XLNET_about_suicide_test_set_notext.csv')
+```{r}
+#create empty dataframe for all metrics plus CI
+df = data.frame(matrix(NA, nrow = 6, ncol = 9), row.names =c("suicidality", 'coping', "awareness", "prevention", "werther", "irrelevant"))
+names(df) =  c("Precision", "PrCiLow", "PrCiUp","Recall","ReCiLow", "ReCiUp", "F1", "F1CiLow", "F1CiUp")
+  
+#now run the bootstrap and calculate CIs for each class
+for(iclass in c("suicidality", 'coping', "awareness", "prevention", "werther", "irrelevant")){
+ 
+  #calculate metrics in 1000 bootstrapped samples
+  set.seed(42)
+  bootstrap = boot(val_6cat, mlperf6.fun, class=iclass, R=1000)
+  
+  #save the bootstrapped statistics into dataframe, the row for iclass
+  df[iclass, c("Precision", "Recall", "F1")] = bootstrap$t0
+  
+  #calculate ci's for each metric (index 1, 2, 3)
+  precision_ci = boot.ci(boot.out = bootstrap, type = c("norm"), index=1)
+  df[iclass, c("PrCiLow", "PrCiUp")] = c(precision_ci$normal[[2]], precision_ci$normal[[3]])
+  recall_ci = boot.ci(boot.out = bootstrap, type = c("norm"), index=2)
+  df[iclass, c("ReCiLow", "ReCiUp")] = c(recall_ci$normal[[2]],recall_ci$normal[[3]])
+  f1_ci = boot.ci(boot.out = bootstrap, type = c("norm"), index=3)
+  df[iclass, c("F1CiLow", "F1CiUp")] = c(f1_ci$normal[[2]], f1_ci$normal[[3]])
+}
+df["macro",] = colMeans(df)
+df
+cis_BERT_6cat_validation= df
+write.csv(cis_BERT_6cat_validation, "../results/cis_BERT_6cat_validation.csv")
 ```
+
+## About suicide 
+
+### BERT test set
+
+
+```{r}
+#create empty dataframe for all metrics plus CI
+df = data.frame(matrix(NA, nrow = 2, ncol = 9), row.names =levels(test_aboutsuicide$true_label))
+names(df) =  c("Precision", "PrCiLow", "PrCiUp","Recall","ReCiLow", "ReCiUp", "F1", "F1CiLow", "F1CiUp")
+  
+
+#now run the bootstrap and calculate CIs for each class
+for(iclass in levels(test_aboutsuicide$true_label)){
+ 
+  #calculate metrics in 1000 bootstrapped samples
+  set.seed(42)
+  bootstrap = boot(test_aboutsuicide, mlperf2.fun, class=iclass, R=1000)
+  
+  #save the bootstrapped statistics into dataframe, the row for iclass
+  df[iclass, c("Precision", "Recall", "F1")] = bootstrap$t0
+  
+  #calculate ci's for each metric (index 1, 2, 3)
+  precision_ci = boot.ci(boot.out = bootstrap, type = c("norm"), index=1)
+  df[iclass, c("PrCiLow", "PrCiUp")] = c(precision_ci$normal[[2]], precision_ci$normal[[3]])
+  recall_ci = boot.ci(boot.out = bootstrap, type = c("norm"), index=2)
+  df[iclass, c("ReCiLow", "ReCiUp")] = c(recall_ci$normal[[2]],recall_ci$normal[[3]])
+  f1_ci = boot.ci(boot.out = bootstrap, type = c("norm"), index=3)
+  df[iclass, c("F1CiLow", "F1CiUp")] = c(f1_ci$normal[[2]], f1_ci$normal[[3]])
+}
+
+df["macro",] = colMeans(df)
+df
+cis_BERT_aboutsuicide_test = df
+write.csv(cis_BERT_aboutsuicide_test, "../results/cis_BERT_aboutsuicide_test.csv")
+```
+
+### BERT validation set
+
+```{r}
+
+#create empty dataframe for all metrics plus CI
+df = data.frame(matrix(NA, nrow = 2, ncol = 9), row.names =levels(val_aboutsuicide$true_label))
+names(df) =  c("Precision", "PrCiLow", "PrCiUp","Recall","ReCiLow", "ReCiUp", "F1", "F1CiLow", "F1CiUp")
+  
+
+#now run the bootstrap and calculate CIs for each class
+for(iclass in levels(val_aboutsuicide$true_label)){
+ 
+  #calculate metrics in 1000 bootstrapped samples
+  set.seed(42)
+  bootstrap = boot(val_aboutsuicide, mlperf2.fun, class=iclass, R=1000)
+  
+  #save the bootstrapped statistics into dataframe, the row for iclass
+  df[iclass, c("Precision", "Recall", "F1")] = bootstrap$t0
+  
+  #calculate ci's for each metric (index 1, 2, 3)
+  precision_ci = boot.ci(boot.out = bootstrap, type = c("norm"), index=1)
+  df[iclass, c("PrCiLow", "PrCiUp")] = c(precision_ci$normal[[2]], precision_ci$normal[[3]])
+  recall_ci = boot.ci(boot.out = bootstrap, type = c("norm"), index=2)
+  df[iclass, c("ReCiLow", "ReCiUp")] = c(recall_ci$normal[[2]],recall_ci$normal[[3]])
+  f1_ci = boot.ci(boot.out = bootstrap, type = c("norm"), index=3)
+  df[iclass, c("F1CiLow", "F1CiUp")] = c(f1_ci$normal[[2]], f1_ci$normal[[3]])
+}
+
+df["macro",] = colMeans(df)
+df
+cis_BERT_aboutsuicide_validation = df
+write.csv(cis_BERT_aboutsuicide_validation, "../results/cis_BERT_aboutsuicide_validation.csv")
+```
+
+
+
+# XLNet: confidence intervals
+
+```{r, read in datafiles XLNet}
+val_6cat = order6cat(read.csv('../results/predictions_XLNET_6_classes_validation_set.csv'))
+test_6cat = order6cat(read.csv('../results/predictions_XLNET_6_classes_test_set.csv'))
+val_aboutsuicide = read.csv('../results/predictions_XLNET_about_suicide_validation_set.csv')
+test_aboutsuicide = read.csv('../results/predictions_XLNET_about_suicide_test_set.csv')
+```
+
+## 6 categories
+
+### XLNet test set
+
+```{r}
+#create empty dataframe for all metrics plus CI
+df = data.frame(matrix(NA, nrow = 6, ncol = 9), row.names =c("suicidality", 'coping', "awareness", "prevention", "werther", "irrelevant"))
+names(df) =  c("Precision", "PrCiLow", "PrCiUp","Recall","ReCiLow", "ReCiUp", "F1", "F1CiLow", "F1CiUp")
+  
+#now run the bootstrap and calculate CIs for each class
+for(iclass in c("suicidality", 'coping', "awareness", "prevention", "werther", "irrelevant")){
+ 
+  #calculate metrics in 1000 bootstrapped samples
+  set.seed(42)
+  bootstrap = boot(test_6cat,mlperf6.fun, class=iclass, R=1000)
+  
+  #save the bootstrapped statistics into dataframe, the row for iclass
+  df[iclass, c("Precision", "Recall", "F1")] = bootstrap$t0
+  
+  #calculate ci's for each metric (index 1, 2, 3)
+  precision_ci = boot.ci(boot.out = bootstrap, type = c("norm"), index=1)
+  df[iclass, c("PrCiLow", "PrCiUp")] = c(precision_ci$normal[[2]], precision_ci$normal[[3]])
+  recall_ci = boot.ci(boot.out = bootstrap, type = c("norm"), index=2)
+  df[iclass, c("ReCiLow", "ReCiUp")] = c(recall_ci$normal[[2]],recall_ci$normal[[3]])
+  f1_ci = boot.ci(boot.out = bootstrap, type = c("norm"), index=3)
+  df[iclass, c("F1CiLow", "F1CiUp")] = c(f1_ci$normal[[2]], f1_ci$normal[[3]])
+}
+
+df["macro",] = colMeans(df)
+df
+cis_XLNet_6cat_test = df
+write.csv(cis_XLNet_6cat_test, "../results/cis_XLNet_6cat_test.csv")
+```
+
+### XLNet validation set
+
+```{r}
+#create empty dataframe for all metrics plus CI
+df = data.frame(matrix(NA, nrow = 6, ncol = 9), row.names =c("suicidality", 'coping', "awareness", "prevention", "werther", "irrelevant"))
+names(df) =  c("Precision", "PrCiLow", "PrCiUp","Recall","ReCiLow", "ReCiUp", "F1", "F1CiLow", "F1CiUp")
+  
+#now run the bootstrap and calculate CIs for each class
+for(iclass in c("suicidality", 'coping', "awareness", "prevention", "werther", "irrelevant")){
+ 
+  #calculate metrics in 1000 bootstrapped samples
+  set.seed(42)
+  bootstrap = boot(val_6cat,mlperf6.fun, class=iclass, R=1000)
+  
+  #save the bootstrapped statistics into dataframe, the row for iclass
+  df[iclass, c("Precision", "Recall", "F1")] = bootstrap$t0
+  
+  #calculate ci's for each metric (index 1, 2, 3)
+  precision_ci = boot.ci(boot.out = bootstrap, type = c("norm"), index=1)
+  df[iclass, c("PrCiLow", "PrCiUp")] = c(precision_ci$normal[[2]], precision_ci$normal[[3]])
+  recall_ci = boot.ci(boot.out = bootstrap, type = c("norm"), index=2)
+  df[iclass, c("ReCiLow", "ReCiUp")] = c(recall_ci$normal[[2]],recall_ci$normal[[3]])
+  f1_ci = boot.ci(boot.out = bootstrap, type = c("norm"), index=3)
+  df[iclass, c("F1CiLow", "F1CiUp")] = c(f1_ci$normal[[2]], f1_ci$normal[[3]])
+}
+df["macro",] = colMeans(df)
+df
+cis_XLNet_6cat_validation = df
+write.csv(cis_XLNet_6cat_validation, "../results/cis_XLNet_6cat_validation.csv")
+```
+
+## About suicide 
+
+### XLNet test set
+
+```{r}
+#create empty dataframe for all metrics plus CI
+df = data.frame(matrix(NA, nrow = 2, ncol = 9), row.names =levels(test_aboutsuicide$true_label))
+names(df) =  c("Precision", "PrCiLow", "PrCiUp","Recall","ReCiLow", "ReCiUp", "F1", "F1CiLow", "F1CiUp")
+  
+
+#now run the bootstrap and calculate CIs for each class
+for(iclass in levels(test_aboutsuicide$true_label)){
+ 
+  #calculate metrics in 1000 bootstrapped samples
+  set.seed(42)
+  bootstrap = boot(test_aboutsuicide, mlperf2.fun, class=iclass, R=1000)
+  
+  #save the bootstrapped statistics into dataframe, the row for iclass
+  df[iclass, c("Precision", "Recall", "F1")] = bootstrap$t0
+  
+  #calculate ci's for each metric (index 1, 2, 3)
+  precision_ci = boot.ci(boot.out = bootstrap, type = c("norm"), index=1)
+  df[iclass, c("PrCiLow", "PrCiUp")] = c(precision_ci$normal[[2]], precision_ci$normal[[3]])
+  recall_ci = boot.ci(boot.out = bootstrap, type = c("norm"), index=2)
+  df[iclass, c("ReCiLow", "ReCiUp")] = c(recall_ci$normal[[2]],recall_ci$normal[[3]])
+  f1_ci = boot.ci(boot.out = bootstrap, type = c("norm"), index=3)
+  df[iclass, c("F1CiLow", "F1CiUp")] = c(f1_ci$normal[[2]], f1_ci$normal[[3]])
+}
+
+df["macro",] = colMeans(df)
+df
+cis_XLNet_aboutsuicide_test = df
+write.csv(cis_XLNet_aboutsuicide_test, "../results/cis_XLNet_aboutsuicide_test.csv")
+```
+
+### XLNet validation set
+
+```{r}
+#create empty dataframe for all metrics plus CI
+df = data.frame(matrix(NA, nrow = 2, ncol = 9), row.names =levels(val_aboutsuicide$true_label))
+names(df) =  c("Precision", "PrCiLow", "PrCiUp","Recall","ReCiLow", "ReCiUp", "F1", "F1CiLow", "F1CiUp")
+  
+
+#now run the bootstrap and calculate CIs for each class
+for(iclass in levels(val_aboutsuicide$true_label)){
+ 
+  #calculate metrics in 1000 bootstrapped samples
+  set.seed(42)
+  bootstrap = boot(val_aboutsuicide, mlperf2.fun, class=iclass, R=1000)
+  
+  #save the bootstrapped statistics into dataframe, the row for iclass
+  df[iclass, c("Precision", "Recall", "F1")] = bootstrap$t0
+  
+  #calculate ci's for each metric (index 1, 2, 3)
+  precision_ci = boot.ci(boot.out = bootstrap, type = c("norm"), index=1)
+  df[iclass, c("PrCiLow", "PrCiUp")] = c(precision_ci$normal[[2]], precision_ci$normal[[3]])
+  recall_ci = boot.ci(boot.out = bootstrap, type = c("norm"), index=2)
+  df[iclass, c("ReCiLow", "ReCiUp")] = c(recall_ci$normal[[2]],recall_ci$normal[[3]])
+  f1_ci = boot.ci(boot.out = bootstrap, type = c("norm"), index=3)
+  df[iclass, c("F1CiLow", "F1CiUp")] = c(f1_ci$normal[[2]], f1_ci$normal[[3]])
+}
+
+df["macro",] = colMeans(df)
+df
+cis_XLNet_aboutsuicide_validation = df
+write.csv(cis_XLNet_aboutsuicide_validation, "../results/cis_XLNet_aboutsuicide_validation.csv")
+```
+
+# TFIDF: Performance scores with confidence intervals
+
+```{r, read in datafiles TFIDF}
+val_6cat = order6cat(read.csv('../results/predictions_TFIDF_6_classes_validation_set.csv'))
+test_6cat = order6cat(read.csv('../results/predictions_TFIDF_6_classes_test_set.csv'))
+val_aboutsuicide = read.csv('../results/predictions_TFIDF_about_suicide_validation_set.csv')
+test_aboutsuicide = read.csv('../results/predictions_TFIDF_about_suicide_test_set.csv')
+```
+
+## 6 categories
+
+### TFIDF test set
+
+```{r}
+#create empty dataframe for all metrics plus CI
+df = data.frame(matrix(NA, nrow = 6, ncol = 9), row.names =c("suicidality", 'coping', "awareness", "prevention", "werther", "irrelevant"))
+names(df) =  c("Precision", "PrCiLow", "PrCiUp","Recall","ReCiLow", "ReCiUp", "F1", "F1CiLow", "F1CiUp")
+  
+#now run the bootstrap and calculate CIs for each class
+for(iclass in c("suicidality", 'coping', "awareness", "prevention", "werther", "irrelevant")){
+ 
+  #calculate metrics in 1000 bootstrapped samples
+  set.seed(42)
+  bootstrap = boot(test_6cat,mlperf6.fun, class=iclass, R=1000)
+  
+  #save the bootstrapped statistics into dataframe, the row for iclass
+  df[iclass, c("Precision", "Recall", "F1")] = bootstrap$t0
+  
+  #calculate ci's for each metric (index 1, 2, 3)
+  precision_ci = boot.ci(boot.out = bootstrap, type = c("norm"), index=1)
+  df[iclass, c("PrCiLow", "PrCiUp")] = c(precision_ci$normal[[2]], precision_ci$normal[[3]])
+  recall_ci = boot.ci(boot.out = bootstrap, type = c("norm"), index=2)
+  df[iclass, c("ReCiLow", "ReCiUp")] = c(recall_ci$normal[[2]],recall_ci$normal[[3]])
+  f1_ci = boot.ci(boot.out = bootstrap, type = c("norm"), index=3)
+  df[iclass, c("F1CiLow", "F1CiUp")] = c(f1_ci$normal[[2]], f1_ci$normal[[3]])
+}
+
+df["macro",] = colMeans(df)
+df
+cis_TFIDF_6cat_test = df
+write.csv(cis_TFIDF_6cat_test, "../results/cis_TFIDF_6cat_test.csv")
+```
+
+### TFIDF validation set
+
+```{r}
+#create empty dataframe for all metrics plus CI
+df = data.frame(matrix(NA, nrow = 6, ncol = 9), row.names =c("suicidality", 'coping', "awareness", "prevention", "werther", "irrelevant"))
+names(df) =  c("Precision", "PrCiLow", "PrCiUp","Recall","ReCiLow", "ReCiUp", "F1", "F1CiLow", "F1CiUp")
+  
+#now run the bootstrap and calculate CIs for each class
+for(iclass in c("suicidality", 'coping', "awareness", "prevention", "werther", "irrelevant")){
+ 
+  #calculate metrics in 1000 bootstrapped samples
+  set.seed(42)
+  bootstrap = boot(val_6cat,mlperf6.fun, class=iclass, R=1000)
+  
+  #save the bootstrapped statistics into dataframe, the row for iclass
+  df[iclass, c("Precision", "Recall", "F1")] = bootstrap$t0
+  
+  #calculate ci's for each metric (index 1, 2, 3)
+  precision_ci = boot.ci(boot.out = bootstrap, type = c("norm"), index=1)
+  df[iclass, c("PrCiLow", "PrCiUp")] = c(precision_ci$normal[[2]], precision_ci$normal[[3]])
+  recall_ci = boot.ci(boot.out = bootstrap, type = c("norm"), index=2)
+  df[iclass, c("ReCiLow", "ReCiUp")] = c(recall_ci$normal[[2]],recall_ci$normal[[3]])
+  f1_ci = boot.ci(boot.out = bootstrap, type = c("norm"), index=3)
+  df[iclass, c("F1CiLow", "F1CiUp")] = c(f1_ci$normal[[2]], f1_ci$normal[[3]])
+}
+df["macro",] = colMeans(df)
+df
+cis_TFIDF_6cat_validation = df
+write.csv(cis_TFIDF_6cat_validation, "../results/cis_TFIDF_6cat_validation.csv")
+```
+
+## About suicide 
+
+### TFIDF test set
+
+```{r}
+#create empty dataframe for all metrics plus CI
+df = data.frame(matrix(NA, nrow = 2, ncol = 9), row.names =levels(test_aboutsuicide$true_label))
+names(df) =  c("Precision", "PrCiLow", "PrCiUp","Recall","ReCiLow", "ReCiUp", "F1", "F1CiLow", "F1CiUp")
+  
+
+#now run the bootstrap and calculate CIs for each class
+for(iclass in levels(test_aboutsuicide$true_label)){
+ 
+  #calculate metrics in 1000 bootstrapped samples
+  set.seed(42)
+  bootstrap = boot(test_aboutsuicide, mlperf2.fun, class=iclass, R=1000)
+  
+  #save the bootstrapped statistics into dataframe, the row for iclass
+  df[iclass, c("Precision", "Recall", "F1")] = bootstrap$t0
+  
+  #calculate ci's for each metric (index 1, 2, 3)
+  precision_ci = boot.ci(boot.out = bootstrap, type = c("norm"), index=1)
+  df[iclass, c("PrCiLow", "PrCiUp")] = c(precision_ci$normal[[2]], precision_ci$normal[[3]])
+  recall_ci = boot.ci(boot.out = bootstrap, type = c("norm"), index=2)
+  df[iclass, c("ReCiLow", "ReCiUp")] = c(recall_ci$normal[[2]],recall_ci$normal[[3]])
+  f1_ci = boot.ci(boot.out = bootstrap, type = c("norm"), index=3)
+  df[iclass, c("F1CiLow", "F1CiUp")] = c(f1_ci$normal[[2]], f1_ci$normal[[3]])
+}
+
+df["macro",] = colMeans(df)
+df
+cis_TFIDF_aboutsuicide_test = df
+write.csv(cis_TFIDF_aboutsuicide_test, "../results/cis_TFIDF_aboutsuicide_test.csv")
+```
+
+### TFIDF validation set
+
+```{r}
+
+#create empty dataframe for all metrics plus CI
+df = data.frame(matrix(NA, nrow = 2, ncol = 9), row.names =levels(val_aboutsuicide$true_label))
+names(df) =  c("Precision", "PrCiLow", "PrCiUp","Recall","ReCiLow", "ReCiUp", "F1", "F1CiLow", "F1CiUp")
+  
+
+#now run the bootstrap and calculate CIs for each class
+for(iclass in levels(val_aboutsuicide$true_label)){
+ 
+  #calculate metrics in 1000 bootstrapped samples
+  set.seed(42)
+  bootstrap = boot(val_aboutsuicide, mlperf2.fun, class=iclass, R=1000)
+  
+  #save the bootstrapped statistics into dataframe, the row for iclass
+  df[iclass, c("Precision", "Recall", "F1")] = bootstrap$t0
+  
+  #calculate ci's for each metric (index 1, 2, 3)
+  precision_ci = boot.ci(boot.out = bootstrap, type = c("norm"), index=1)
+  df[iclass, c("PrCiLow", "PrCiUp")] = c(precision_ci$normal[[2]], precision_ci$normal[[3]])
+  recall_ci = boot.ci(boot.out = bootstrap, type = c("norm"), index=2)
+  df[iclass, c("ReCiLow", "ReCiUp")] = c(recall_ci$normal[[2]],recall_ci$normal[[3]])
+  f1_ci = boot.ci(boot.out = bootstrap, type = c("norm"), index=3)
+  df[iclass, c("F1CiLow", "F1CiUp")] = c(f1_ci$normal[[2]], f1_ci$normal[[3]])
+}
+
+df["macro",] = colMeans(df)
+df
+cis_TFIDF_aboutsuicide_validation = df
+write.csv(cis_TFIDF_aboutsuicide_validation, "../results/cis_TFIDF_aboutsuicide_validation.csv")
+```
+
