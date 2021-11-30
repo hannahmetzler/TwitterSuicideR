@@ -18,3 +18,6 @@ scripts_Konstantin
 scripts_Konstantin/
 *tar.gz
 results/cis*
+scripts/*_cache/
+tweet_training_set/1-1000tweets*
+results/estimated_*
