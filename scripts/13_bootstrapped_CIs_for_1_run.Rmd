@@ -80,10 +80,8 @@ names(df) =  c("Precision", "PrCiLow", "PrCiUp","Recall","ReCiLow", "ReCiUp", "F
 #now run the bootstrap and calculate CIs for each class
 for(iclass in c("suicidality", 'coping', "awareness", "prevention", "werther", "irrelevant")){
  
-  data = test_6cat
-  #calculate metrics in 1000 bootstrapped samples
-  set.seed(42)
-  bootstrap = boot(data, mlperf6.fun, class=iclass, R=1000)
+ set.seed(42)
+  bootstrap = boot(test_6cat, mlperf6.fun, class=iclass, R=1000)
   
   #save the bootstrapped statistics into dataframe, the row for iclass
   df[iclass, c("Precision", "Recall", "F1")] = bootstrap$t0
@@ -102,7 +100,7 @@ df["macro",] = colMeans(df)
 df
 
 cis_BERT_6cat_test = df
-write.csv(cis_BERT_6cat_test, "../results_not_on_git/bootstrapped_CIs/cis_BERT_6cat_test.csv")
+# write.csv(cis_BERT_6cat_test, "../results_not_on_git/bootstrapped_CIs/cis_BERT_6cat_test.csv")
 ```
 
 ### BERT validation set
@@ -133,7 +131,7 @@ for(iclass in c("suicidality", 'coping', "awareness", "prevention", "werther", "
 df["macro",] = colMeans(df)
 df
 cis_BERT_6cat_validation = df
-write.csv(cis_BERT_6cat_validation, "../results_not_on_git/bootstrapped_CIs/cis_BERT_6cat_validation.csv")
+# write.csv(cis_BERT_6cat_validation, "../results_not_on_git/bootstrapped_CIs/cis_BERT_6cat_validation.csv")
 ```
 
 ```{r}
@@ -205,7 +203,7 @@ for(iclass in levels(test_aboutsuicide$true_label)){
 df["macro",] = colMeans(df)
 df
 cis_BERT_aboutsuicide_test = df
-write.csv(cis_BERT_aboutsuicide_test, "../results_not_on_git/bootstrapped_CIs/cis_BERT_aboutsuicide_test.csv")
+# write.csv(cis_BERT_aboutsuicide_test, "../results_not_on_git/bootstrapped_CIs/cis_BERT_aboutsuicide_test.csv")
 
 ```
 
@@ -239,7 +237,7 @@ for(iclass in levels(val_aboutsuicide$true_label)){
 df["macro",] = colMeans(df)
 df
 cis_BERT_aboutsuicide_validation = df
-write.csv(cis_BERT_aboutsuicide_validation, "../results_not_on_git/bootstrapped_CIs/cis_BERT_aboutsuicide_validation.csv")
+# write.csv(cis_BERT_aboutsuicide_validation, "../results_not_on_git/bootstrapped_CIs/cis_BERT_aboutsuicide_validation.csv")
 ```
 
 
@@ -284,7 +282,7 @@ for(iclass in c("suicidality", 'coping', "awareness", "prevention", "werther", "
 df["macro",] = colMeans(df)
 df
 cis_XLNet_6cat_test = df
-write.csv(cis_XLNet_6cat_test, "../cis_XLNet_6cat_test.csv")
+# write.csv(cis_XLNet_6cat_test, "../results_not_on_git/bootstrapped_CIs/cis_XLNet_6cat_test.csv")
 ```
 
 ### XLNet validation set
@@ -315,7 +313,7 @@ for(iclass in c("suicidality", 'coping', "awareness", "prevention", "werther", "
 df["macro",] = colMeans(df)
 df
 cis_XLNet_6cat_validation = df
-write.csv(cis_XLNet_6cat_validation, "../results_not_on_git/bootstrapped_CIs/cis_XLNet_6cat_validation.csv")
+# write.csv(cis_XLNet_6cat_validation, "../results_not_on_git/bootstrapped_CIs/cis_XLNet_6cat_validation.csv")
 ```
 
 ```{r}
@@ -387,7 +385,7 @@ for(iclass in levels(test_aboutsuicide$true_label)){
 df["macro",] = colMeans(df)
 df
 cis_XLNet_aboutsuicide_test = df
-write.csv(cis_XLNet_aboutsuicide_test, "../results_not_on_git/bootstrapped_CIs/cis_XLNet_aboutsuicide_test.csv")
+# write.csv(cis_XLNet_aboutsuicide_test, "../results_not_on_git/bootstrapped_CIs/cis_XLNet_aboutsuicide_test.csv")
 ```
 
 ### XLNet validation set
@@ -420,7 +418,7 @@ for(iclass in levels(val_aboutsuicide$true_label)){
 df["macro",] = colMeans(df)
 df
 cis_XLNet_aboutsuicide_validation = df
-write.csv(cis_XLNet_aboutsuicide_validation, "../results_not_on_git/bootstrapped_CIs/cis_XLNet_aboutsuicide_validation.csv")
+# write.csv(cis_XLNet_aboutsuicide_validation, "../results_not_on_git/bootstrapped_CIs/cis_XLNet_aboutsuicide_validation.csv")
 ```
 
 # TFIDF: Performance scores with confidence intervals
@@ -463,7 +461,7 @@ for(iclass in c("suicidality", 'coping', "awareness", "prevention", "werther", "
 df["macro",] = colMeans(df)
 df
 cis_TFIDF_6cat_test = df
-write.csv(cis_TFIDF_6cat_test, "../results_not_on_git/bootstrapped_CIs/cis_TFIDF_6cat_test.csv")
+# write.csv(cis_TFIDF_6cat_test, "../results_not_on_git/bootstrapped_CIs/cis_TFIDF_6cat_test.csv")
 ```
 
 ### TFIDF validation set
@@ -494,7 +492,7 @@ for(iclass in c("suicidality", 'coping', "awareness", "prevention", "werther", "
 df["macro",] = colMeans(df)
 df
 cis_TFIDF_6cat_validation = df
-write.csv(cis_TFIDF_6cat_validation, "../results_not_on_git/bootstrapped_CIs/cis_TFIDF_6cat_validation.csv")
+# write.csv(cis_TFIDF_6cat_validation, "../results_not_on_git/bootstrapped_CIs/cis_TFIDF_6cat_validation.csv")
 ```
 
 ## About suicide 
@@ -529,7 +527,7 @@ for(iclass in levels(test_aboutsuicide$true_label)){
 df["macro",] = colMeans(df)
 df
 cis_TFIDF_aboutsuicide_test = df
-write.csv(cis_TFIDF_aboutsuicide_test, "../results_not_on_git/bootstrapped_CIs/cis_TFIDF_aboutsuicide_test.csv")
+# write.csv(cis_TFIDF_aboutsuicide_test, "../results_not_on_git/bootstrapped_CIs/cis_TFIDF_aboutsuicide_test.csv")
 ```
 
 ### TFIDF validation set
@@ -563,6 +561,6 @@ for(iclass in levels(val_aboutsuicide$true_label)){
 df["macro",] = colMeans(df)
 df
 cis_TFIDF_aboutsuicide_validation = df
-write.csv(cis_TFIDF_aboutsuicide_validation, "../results_not_on_git/bootstrapped_CIs/cis_TFIDF_aboutsuicide_validation.csv")
+# write.csv(cis_TFIDF_aboutsuicide_validation, "../results_not_on_git/bootstrapped_CIs/cis_TFIDF_aboutsuicide_validation.csv")
 ```
 
