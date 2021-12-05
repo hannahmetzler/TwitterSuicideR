@@ -16,33 +16,9 @@ Sys.setlocale("LC_ALL", 'en_US.UTF-8')
 options(scipen=99)
 library(dplyr)
 library(caret)
-# library(epiR)
-library(boot)
+library(tidyr)
 
-#function for calculating bootstrapped CIs: 
-# intro to boot package: https://www.geeksforgeeks.org/bootstrap-confidence-interval-with-r-programming/
-#function to calculate the statistics precision, recall, F1, accuracy for each of the 6 categories
-mlperf6.fun = function(data, idx, class){
-  df <- data[idx, ]
-  #out of the confusion Matrix, we only select the byClass metrics, here for only one class at a time
-  perf_class = confusionMatrix(df$true_label, df$predicted_label)$byClass[paste("Class:", class), 
-                                                                          c("Precision", "Recall", "F1")]
-  return(perf_class)
-}
-
-#accuracy per class function
-acc.fun= function(data, idx, class){
-  df <- data[idx, ]
-  Acc = df %>% 
-    summarise(df, sum(predicted_label==true_label)/n())
-  return(Acc)
-}
-data = test_6cat
-data = filter(data, true_label==iclass)
-bootstrap = boot(data, acc.fun, class=iclass, R=1000)
-#this accuracy function still throws an error, check
-
-#order of levels, function: 
+#order of factor levels, function: 
 order_cat = c("suicidality", 'coping', "awareness", "prevention", "werther", "irrelevant" )
 order6cat = function(df){
     df = df %>% 
@@ -50,26 +26,49 @@ order6cat = function(df){
       predicted_label = factor(predicted_label, labels=order_cat, levels=order_cat))
     return(df)
 }
-
-#function to calculate the statistics for each of the 2 about suicide categories
-mlperf2.fun = function(data, idx, class){
-  df <- data[idx, ]
-   #out of the confusion Matrix, we only select the byClass metrics, here for only one class at a time
-  perf_class = confusionMatrix(df$true_label, df$predicted_label, positive=iclass)$byClass[c("Precision", "Recall", "F1")]
-
-  return(perf_class)
-}
 ```
 
 
+# Size test and validation set per category
 
-# Caculate per class metrics that were missing in Hubert's dataset, for different models
+```{r}
+test_6cat = order6cat(read.csv('../results/predictions_TFIDF_6_classes_test_set.csv'))
+val_6cat = order6cat(read.csv('../results/predictions_TFIDF_6_classes_validation_set.csv'))
+test_aboutsuicide = read.csv('../results/predictions_TFIDF_about_suicide_test_set.csv')
+val_aboutsuicide = read.csv('../results/predictions_TFIDF_about_suicide_validation_set.csv')
+```
+
+## Dataset set split in validation and test set
+
+* full labelled dataset: 3202 tweets
+* training set: `r 3202- nrow(val_6cat)- nrow(test_6cat)`
+* validation set 16%: `r nrow(val_6cat)`
+* test set 20%: `r nrow(test_6cat)`
+
+
+
+## 6 classes test
+
+Tweets per class
+
+```{r}
+xtabs(~true_label, test_6cat)
+```
+## 6 classes validation
+
+```{r}
+xtabs(~true_label, val_6cat)
+
+```
+
+
+# Caculate per class metrics that were missing in Hubert's dataset, About suicide classification
 
 * Data from Hubert's excel file (Twitter Results Hubert), sheet AboutSuicide/Not column J
 
 ## About suicide, Bert unbalanced dataset, recommended settings, 3e-5, 5
 
-```{r setup, include=FALSE}
+```{r}
 labels <- c("aboutsuicide", "notsuicide")
 truth <- factor(rep(labels, times = c(455+22, 58+90)),
                 levels = (labels))
@@ -77,6 +76,7 @@ pred <- factor( c(rep(labels, times = c(455, 22)),
                   rep(labels, times = c(58, 90))),
                 levels = (labels))
 xtab <- table(pred, truth)
+xtab
 ```
 
 * this fits Hubert's stats here: https://imgur.com/AwBYNoS
@@ -85,17 +85,18 @@ xtab <- table(pred, truth)
 * positive pred value = precision
 * sensitivity = recall
 
-```{r setup, include=FALSE}
+```{r}
 average = caret::confusionMatrix(xtab, positive = "notsuicide")$overall[c("Accuracy", "AccuracyLower", "AccuracyUpper")]
   byclass = round(data.frame(
   aboutsuicide = caret::confusionMatrix(xtab, positive = "aboutsuicide")$byClass[c("Precision", "Recall", "F1")],
   notsuicide = caret::confusionMatrix(xtab, positive = "notsuicide")$byClass[c("Precision", "Recall", "F1")]), 2)
 # write.csv(file = "output/ML_byclass_performance.csv", t(byclass))
+  average
 ```
 
 ## About suicide,BERT unbalanced (1e-5, 10, 1) - final model reported in the paper
 
-```{r setup, include=FALSE}
+```{r}
 ####
 labels <- c("aboutsuicide", "notsuicide")
 truth <- factor(rep(labels, times = c(452+25, 49+99)),
@@ -109,11 +110,13 @@ byclass = round(data.frame(
   aboutsuicide = caret::confusionMatrix(xtab, positive = "aboutsuicide")$byClass[c("Precision", "Recall", "F1")],
   notsuicide = caret::confusionMatrix(xtab, positive = "notsuicide")$byClass[c("Precision", "Recall", "F1")]), 2)
 # write.csv(file = "output/ML_byclass_performance_about_suicide.csv", t(byclass))
+average
+byclass
 ```
 
 ## XLNet
 
-```{r setup, include=FALSE}
+```{r}
 labels <- c("aboutsuicide", "notsuicide")
 truth <- factor(rep(labels, times = c(448+29,46+102)),
                 levels = (labels))
@@ -126,16 +129,18 @@ byclass = round(data.frame(
   aboutsuicide = caret::confusionMatrix(xtab, positive = "aboutsuicide")$byClass[c("Precision", "Recall", "F1")],
   notsuicide = caret::confusionMatrix(xtab, positive = "notsuicide")$byClass[c("Precision", "Recall", "F1")]), 2)
 # write.csv(file = "output/ML_byclass_performance_about_suicide.csv", t(byclass))
+average
+byclass
 ```
 
 ## TFIDF
 
-```{r setup, include=FALSE}
+```{r}
 labels <- c("aboutsuicide", "notsuicide")
-truth <- factor(rep(labels, times = c(417+60,60+88)),
+truth <- factor(rep(labels, times = c(404+50,74+113)), #former numbers, corrected: c(417+60,60+88)
                 levels = (labels))
-pred <- factor( c(rep(labels, times = c(417,60)),
-                  rep(labels, times = c(60,88))),
+pred <- factor( c(rep(labels, times = c(404,50)),#former numbers, corrected:c(417,60)
+                  rep(labels, times = c(74,113))),#former numbers, corrected: c(60,88)
                 levels = (labels))
 xtab <- table(pred, truth)
 average = caret::confusionMatrix(xtab, positive = "notsuicide")$overall[c("Accuracy", "AccuracyLower", "AccuracyUpper")]
@@ -143,6 +148,292 @@ byclass = round(data.frame(
   aboutsuicide = caret::confusionMatrix(xtab, positive = "aboutsuicide")$byClass[c("Precision", "Recall", "F1")],
   notsuicide = caret::confusionMatrix(xtab, positive = "notsuicide")$byClass[c("Precision", "Recall", "F1")]), 2)
 # write.csv(file = "output/ML_byclass_performance_about_suicide.csv", t(byclass))
+average
+byclass
 ```
+
+
+
+# Calculate per class metric with binomial confidence intervals for the test set
+
+**How can I calculate the CIs for precision and recall without having the predicted labels (only true labels)?**
+
+* I don't have the predicted labels because we ran 5 runs for BERT and XLNet, and we need the average of predicted labels per class across runs. Therefore, we estimate the predicted labels necessary to calcualte CIs like this: 
+* I need for each binomial test: Number of successes (TP) in the numerator, and the following denominators: 
+    * Recall Denominator is TP+FN (all real positives repos): this is the number of true labels in the test set (I have it)
+    * Precision Denominator is TP+FP for precision (all positive predictions pospred)
+* Get the missing values: 
+  * TP = Recall*Real Positives
+  * Positive predictions: TP/Precision
+* Confidence intervals like this: 
+    * Precision: binom.test(x=TP, n= positive predictions)
+    * Recall: binom.test(x=TP, n= real positives)
+
+# 6 categories
+
+```{r, function 6 category CIs}
+#function to run on every model: input df and precision recall f1 per class (prf)
+cis_model = function(df, prf){
+
+  n = nrow(df)
+
+  #calculate the missing values: ####
+  
+  #real positive labels
+  repos = as.data.frame(xtabs(~true_label, df))
+  
+  #true positives: recall*repos
+  tp = prf$Recall * repos$Freq
+  #check with the predicted labels (only possible for TFIDF where each run gives the same results): true positive predictions ! correct
+  # df %>%
+  #   group_by(true_label) %>%
+  #   filter(predicted_label==true_label) %>%
+  #   summarise(n = n())
+  
+  #positive predictions: TP/Precision
+  pospred = tp/prf$Precision 
+  #check with the predicted labels (only possible for TFIDF where each run gives the same results) # correct!
+  # df %>%
+  #   group_by(predicted_label) %>% 
+  #   summarise(n = n())
+  
+  ##per class CIs, 95% CI computed with the Clopper and Pearson (1934) method ####
+  for (i in seq(1, nrow(prf)))
+  {
+    #precision: binom.test(x=TP, n= positive predictions)
+    btest <- binom.test(x=round(tp[i]), n = round(pospred[i]))
+    prf$PrLower[i] <-btest$conf.int[1]
+    prf$PrUpper[i] <-btest$conf.int[2]
+    
+    # #recall: binom.test(x=TP, n= real positives)
+    btest <- binom.test(x=round(tp[i]), n = round(repos$Freq[i]))
+    prf$ReLower[i] <-btest$conf.int[1]
+    prf$ReUpper[i] <-btest$conf.int[2]
+  }
+  prf = round(prf,2)
+  row.names(prf) = repos$true_label
+  prf$main_category = repos$true_label
+  
+  #format for table 4
+  tab4 = data.frame(Category = repos$true_label)
+  tab4$Pr = paste0(prf$Precision, " [", prf$PrLower, "-", prf$PrUpper, "]")
+  tab4$Re = paste0(prf$Recall, " [", prf$ReLower, "-", prf$ReUpper, "]")
+  tab4$F1 = prf$F1
+
+  results = list("tab4" = tab4, "perClass" = prf)
+  return(results)
+}
+```
+
+### Majority classifier: 
+
+* precision (and F1) per class not possible to calculate, because true positives 0 for all classes except irrelevant, and division by 0 impossible
+
+### TFIDF
+
+```{r}
+
+test_6cat = order6cat(read.csv('../results/predictions_TFIDF_6_classes_test_set.csv'))
+#per class metrics for TFIDF still need to be calculated (not in Hubert's results tables)
+cfm = confusionMatrix(test_6cat$predicted_label, test_6cat$true_label)
+prf = as.data.frame(cfm$byClass[,c("Precision", "Recall", "F1")])
+
+#Marco-averages (not needed)
+macro_prf = round(data.frame(t(colMeans(prf))),2)
+acc = round(data.frame(t(cfm$overall[c("Accuracy", "AccuracyLower", "AccuracyUpper")])),2)
+#paste into one cell for paper table
+Acc = paste0(acc$Accuracy, " [", acc$AccuracyLower, ",", acc$AccuracyUpper, "]")
+tab3 = cbind(macro_prf, Acc)
+
+#calculate per class CIs:   
+tfidf = cis_model(df= test_6cat, prf = prf)
+
+#BERT
+test_6cat = order6cat(read.csv('../results/predictions_BERT_6_classes_test_set.csv'))
+#load per class metrics (average across 5 runs)
+prf = read.csv('../results/BERT2_intraclass_performance_6_classes_test_set.csv') %>% 
+  select(-Main_category)
+bert = cis_model(df= test_6cat, prf = prf)
+
+#XLNet
+test_6cat = order6cat(read.csv('../results/predictions_XLNET_6_classes_test_set.csv'))
+#load per class metrics (average across 5 runs)
+prf = read.csv('../results/XLNET_intraclass_performance_6_classes_test_set.csv') %>% 
+  select(-Main_category)
+xlnet = cis_model(df= test_6cat, prf = prf)
+
+# format for paper
+tab4 = cbind(Model = c("TF-IDF & SVM", "BERT", "XLNet"),
+      rbind(cbind(tfidf$tab4[1,], tfidf$tab4[2,],tfidf$tab4[3,],tfidf$tab4[4,],tfidf$tab4[5,],tfidf$tab4[6,]),
+            cbind(bert$tab4[1,], bert$tab4[2,],bert$tab4[3,],bert$tab4[4,],bert$tab4[5,],bert$tab4[6,]),
+            cbind(xlnet$tab4[1,], xlnet$tab4[2,],xlnet$tab4[3,],xlnet$tab4[4,],xlnet$tab4[5,],xlnet$tab4[6,])))
+# test_aboutsuicide = read.csv('../results/predictions_TFIDF_about_suicide_test_set.csv')
+write.csv(tab4, file = '../results/Table4_intraclass_performance_6_classes_withCIs.csv')
+
+perClass = list("tfidf" = tfidf$perClass, "bert"=bert$perClass, "xlnet"=xlnet$perClass)
+
+#save data for figures
+save(perClass, file='../results/intraclass_performance_6_classes.Rdata')
+
+```
+
+### TFIDF
+
+Macro
+
+```{r}
+tab3
+```
+
+Per Class
+
+```{r}
+tfidf$tab4
+```
+
+### BERT per Class
+
+```{r}
+bert$tab4
+```
+
+### XLNet per Class
+
+```{r}
+xlnet$tab4
+```
+
+# About suicide
+
+Tweets per class
+
+```{r}
+xtabs(~true_label, test_aboutsuicide)
+```
+
+
+```{r, function about actual suicide}
+#function to run on every model: input df and precision recall f1 per class (prf)
+cis_model_a = function(df, prf){
+df = test_aboutsuicide
+  n = nrow(df)
+
+  #calculate the missing values: ####
+  
+  #real positive labels
+  repos = as.data.frame(xtabs(~true_label, df))
+  
+  #true positives: recall*repos
+  tp = prf$Recall * repos$Freq
+  # #check with the predicted labels (only possible for TFIDF where each run gives the same results): true positive predictions ! correct
+  # df %>%
+  #   group_by(true_label) %>%
+  #   filter(predicted_label==true_label) %>%
+  #   summarise(n = n())
+  
+  #positive predictions: TP/Precision
+  pospred = tp/prf$Precision 
+  ## check with the predicted labels (only possible for TFIDF where each run gives the same results) # correct!
+  # df %>%
+  #   group_by(predicted_label) %>%
+  #   summarise(n = n())
+  
+  ##per class CIs, 95% CI computed with the Clopper and Pearson (1934) method ####
+  for (i in seq(1, nrow(prf)))
+  {
+    #precision: binom.test(x=TP, n= positive predictions)
+    btest <- binom.test(x=round(tp[i]), n = round(pospred[i]))
+    prf$PrLower[i] <-btest$conf.int[1]
+    prf$PrUpper[i] <-btest$conf.int[2]
+    
+    # #recall: binom.test(x=TP, n= real positives)
+    btest <- binom.test(x=round(tp[i]), n = round(repos$Freq[i]))
+    prf$ReLower[i] <-btest$conf.int[1]
+    prf$ReUpper[i] <-btest$conf.int[2]
+  }
+  prf = round(prf,2)
+  row.names(prf) = repos$true_label
+  prf$about_suicide = repos$true_label
+  
+  #format for table 4
+  tab6 = data.frame(Category = repos$true_label)
+  tab6$Pr = paste0(prf$Precision, " [", prf$PrLower, "-", prf$PrUpper, "]")
+  tab6$Re = paste0(prf$Recall, " [", prf$ReLower, "-", prf$ReUpper, "]")
+  tab6$F1 = prf$F1
+
+  results = list("tab6" = tab6, "perClass" = prf)
+  return(results)
+}
+```
+
+```{r, majority and tfidf}
+#Majority classifier: precision (and F1) per class not possible to calculate, because true positives 0 for all classes except irrelevant, and division by 0 impossible
+
+#TFIDF validation set(numbers in Hubert's sheet don't fit with the predictions dataset, must be a new run of TFIDF, we will take this last one for the paper)
+val_aboutsuicide = read.csv('../results/predictions_TFIDF_about_suicide_validation_set.csv')
+#per class metrics for TFIDF still need to be calculated (not in Hubert's results tables)
+cfm_c = confusionMatrix(val_aboutsuicide$predicted_label, val_aboutsuicide$true_label, positive="correct")
+cfm_f = confusionMatrix(val_aboutsuicide$predicted_label, val_aboutsuicide$true_label, positive="false")
+prf = rbind(as.data.frame(t(cfm_c$byClass[c("Precision", "Recall", "F1")])), t(cfm_f$byClass[c("Precision", "Recall", "F1")]))
+prf
+#Marco-averages (not needed)
+macro_prf = round(data.frame(t(colMeans(prf))),2)
+acc = round(data.frame(t(cfm_c$overall[c("Accuracy", "AccuracyLower", "AccuracyUpper")])),2)
+#paste into one cell for paper table
+Acc = paste0(acc$Accuracy, " [", acc$AccuracyLower, ",", acc$AccuracyUpper, "]")
+tab5_val = cbind(macro_prf, Acc)
+
+#TFIDF test set
+test_aboutsuicide = read.csv('../results/predictions_TFIDF_about_suicide_test_set.csv')
+#per class metrics for TFIDF still need to be calculated (not in Hubert's results tables)
+cfm_c = confusionMatrix(test_aboutsuicide$predicted_label, test_aboutsuicide$true_label, positive="correct")
+cfm_f = confusionMatrix(test_aboutsuicide$predicted_label, test_aboutsuicide$true_label, positive="false")
+prf = rbind(as.data.frame(t(cfm_c$byClass[c("Precision", "Recall", "F1")])), t(cfm_f$byClass[c("Precision", "Recall", "F1")]))
+prf
+#Marco-averages (not needed)
+macro_prf = round(data.frame(t(colMeans(prf))),2)
+acc = round(data.frame(t(cfm_c$overall[c("Accuracy", "AccuracyLower", "AccuracyUpper")])),2)
+#paste into one cell for paper table
+Acc = paste0(acc$Accuracy, " [", acc$AccuracyLower, ",", acc$AccuracyUpper, "]")
+tab5_test = cbind(macro_prf, Acc)
+tab5 = cbind(c("validation", "test"), rbind(tab5_val, tab5_test))
+# write.csv(tab5, file="../results_not_on_git/tfidf_macro_about_suicide.csv")
+```
+
+
+```{r}
+#calculate per class CIs:   TFIDF
+tfidf = cis_model_a(df=test_aboutsuicide, prf = prf)
+
+#BERT
+test_aboutsuicide =read.csv('../results/predictions_BERT_about_suicide_test_set.csv')
+#load per class metrics (average across 5 runs)
+prf = read.csv('../results/BERT2_intraclass_performance_about_suicide_test_set.csv') %>% 
+  select(-About_suicide)
+bert = cis_model_a(df= test_aboutsuicide, prf = prf)
+
+#XLNet
+test_aboutsuicide = read.csv('../results/predictions_XLNET_about_suicide_test_set.csv')
+
+#load per class metrics (average across 5 runs)
+prf = read.csv('../results/XLNet_intraclass_performance_about_suicide_test_set.csv') %>% 
+  select(-About_suicide)
+xlnet = cis_model_a(df= test_aboutsuicide, prf = prf)
+
+# format for paper
+tab6 = cbind(Model = c("TF-IDF & SVM", "BERT", "XLNet"),
+      rbind(cbind(tfidf$tab6[1,], tfidf$tab6[2,]),
+            cbind(bert$tab6[1,], bert$tab6[2,]),
+            cbind(xlnet$tab6[1,], xlnet$tab6[2,])))
+
+write.csv(tab6, file = '../results/Table6_intraclass_performance_about_suicide_withCIs.csv')
+
+#save data for figures
+perClass = list("tfidf" = tfidf$perClass, "bert"=bert$perClass, "xlnet"=xlnet$perClass)
+save(perClass, file='../results/intraclass_performance_aboutsuicide.Rdata')
+
+```
+
+
 
 
