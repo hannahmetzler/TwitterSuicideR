@@ -18,6 +18,8 @@ options(scipen=99)
 #libraries
 library(dplyr)
 library(stringr)
+library(ggplot2)
+library(ggpubr)
 ```
 
 # Results with the final training set and predictions with the final model
@@ -25,7 +27,7 @@ library(stringr)
 Predictions were made with BERT fine tuned with LR = 1e5, 10 epochs, seed 1. This model is called BERT 2 in the paper. The BERT 2 model correctly classified 74% of tweets in the test set. F1-scores lay between 70% to 85% for the different categories of interest (see Table 3 and Figure 1a in the paper), with the exception of the suicidal ideation & attempts category with an F1-score of 55%. More specifically, recall for suicidal ideation & attempt was relatively low (49%), indicating difficulties in detecting all such tweets, whereas precision was higher with 62%. Performances were particularly good (>84%) for prevention tweets, and also quite high for tweets about suicide cases (>75%). For coping tweets, BERT 2 achieved very high precision (82%), but lower recall (67%), which resembles the pattern observed for suicidal tweets. Performances for awareness tweets were around 70%. 
 
 ```{r}
-  load('../reliability_datasets/round4_150x5_suicide_human&model_BERT_finetuned.R')
+load('../reliability_datasets/round4_150x5_suicide_human&model_BERT_finetuned.R')
 
 #format and order variables and labels, so they are the same as with the previous training dataset
 d = d4 %>% 
@@ -97,7 +99,7 @@ ggarrange(plotpercent, plot_count,  common.legend = TRUE, legend = "none", label
 In general, misclassifications as irrelevant are less severe than other confusions, because we prioritize precision (correct predictions for relevant classes) over recall (detecting all true examples). There are two major cases of misclassification between relevant categories: coping tweets get misclassified as suicidal and vice versa, and awareness tweets get misclassified as suicide cases or prevention tweets. The suicidal vs. coping confusion results from.
 
 
-# Suicidality
+# Suicidal ideation and attempts (Suicidality)
 
 
 ```{r}
@@ -275,7 +277,7 @@ x = d %>%
 #   arrange(desc(Freq))
 ```
 
-## Check Awareness misclassification as Suicide other
+## Check Prevention misclassification as Suicide other
 
 ```{r, tab.width=0.7}
 p = as.data.frame(x%>%
@@ -331,7 +333,7 @@ p %>%
 
 # Suicide Other
 
-True Suicide_other tweets are misclassified mostly as off-topic and Werther, and a bit as awareness and suicidality. 
+True Suicide_other tweets are misclassified mostly as irrelevant and Werther, and a bit as awareness and suicidality. 
 
 ```{r}
 d1 = d
@@ -358,11 +360,16 @@ ggplot(matrix12, aes(Var2, Var1, fill = Freq)) +
 * News coping tweets were misclassified as prevention. 
 
 
-## Check Suicide Other misclassification as Off-topic
+## Check Suicide Other misclassification as irrelevant
+
+```{r}
+x = d1 %>% 
+  filter(category.hannah=="suicide_other")
+```
 
 ```{r, tab.width=0.7}
 p = as.data.frame(x%>% 
-  filter(prediction=="Off-topic") %>% 
+  filter(prediction=="Irrelevant") %>% 
   select(-c(true_label, prediction)))
 p %>% 
   mutate(no = 1:n()) %>% 
@@ -375,12 +382,13 @@ p %>%
   select(-text)
 ```
 
-**Of 14 misclassifications:**
+<!-- Not sure which 14 tweets these were -->
+<!-- **Of 14 misclassifications:** -->
 
-* 1 tweet: Nr 1: model is right - corrected in training set 20201126
-* 8 mistakes are understandable: Nr 2, 3, 5 (could be a joke), 6, 7, 8 (could be a joke), 11, 13 (could be a joke)
-* 5 times the model is wrong because the tweet is clearly about suicide: Nr 4, 9, 10 (model missed the murder-suicide), 12, 14
-# 3 could be jokes 5, 8, 13
+<!-- * 1 tweet: Nr 1: model is right - corrected in training set 20201126 -->
+<!-- * 8 mistakes are understandable: Nr 2, 3, 5 (could be a joke), 6, 7, 8 (could be a joke), 11, 13 (could be a joke) -->
+<!-- * 5 times the model is wrong because the tweet is clearly about suicide: Nr 4, 9, 10 (model missed the murder-suicide), 12, 14 -->
+<!-- # 3 could be jokes 5, 8, 13 -->
 
 
 ## Check Suicide Other misclassification as Werther

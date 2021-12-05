@@ -14,6 +14,7 @@ Our datasets do not include the text of tweets, in order to protect sensitive us
 Scripts that CAN be run with the datasets available in the repository
 - 01a
 
-Scripts that CANNOT be run with the datasets available in the repository
+Scripts that CANNOT be run with the datasets available in the repository (posted for maximal transparency)
 - 01b: for this script, datafiles with tweet text of the training set would be necessary. Script included to provide transparency about the creation of the training set and annotation scheme. 
+- 02 and 03: needs early versions/subparts of the training set, scripts that were used during construction of the training dataset
 

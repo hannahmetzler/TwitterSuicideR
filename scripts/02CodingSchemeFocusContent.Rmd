@@ -1,7 +1,7 @@
 ---
-title: "Coding Scheme with Focus, Content and Not-serious/Unclear Dimensions: Tweet Frequencies"
+title: "Coding Scheme with Perspective, Message Type and Not-serious/Unclear Dimensions: Tweet Frequencies"
 author: "Hannah Metzler"
-date: "11/26/2020"
+date: "12/05/2021"
 output: 
   pdf_document:
     df_print: kable
@@ -23,12 +23,12 @@ library(forcats)
 library(RColorBrewer)
 ```
 
-# Add 1000 randomly selected tweets to hand- and model-selected training set. Labels for focus/narrative and type of content.
+# Add 1000 randomly selected tweets to hand- and model-selected training set. Labels for focus/perspective and type of message
 
 ```{r}
-training <- read.csv('../tweet_training_set/training_posts20201102_2185tweets.tsv', sep='\t') %>%  #training sample according to table with 6 content types and 2 narratives
+training <- read.csv('../tweet_training_set/training_posts20201102_2185tweets.tsv', sep='\t') %>%  #training sample according to table with 6 content types and 2 perspectives
   select(-txt_clean)
-rs <- read.csv('../tweet_training_set/1-1000tweets_basefrequency_categories_labelled.tsv', sep='\t') %>% #random sample of tweets coded according to table with content and narrative classification
+rs <- read.csv('../tweet_training_set/1-1000tweets_basefrequency_categories_labelled.tsv', sep='\t') %>% #random sample of tweets coded according to table with content and perspective classification
   select(-Order)
 #names(training); names(rs)
 totaltrain <- rbind(training, rs)
@@ -46,7 +46,7 @@ as.data.frame(xtabs(~Category, data=totaltrain))
 
 Do all categories have the right focus coded?
 
-- Suicide_other can be all 3 narratives/foci
+- Suicide_other can be all 3 perspectives/foci
 - Off-topic are all neither of them 
 - Werther can rarely be about a suicide case and still focused on prevention, see 7 instances below
 
