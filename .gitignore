@@ -22,9 +22,10 @@ scripts/*_cache/
 tweet_training_set/1-1000tweets*
 results/estimated_*
 tweets_other_datasets/
-reliability_datasets/round1_*
-reliability_datasets/round2_*
-reliability_datasets/round3_*
+reliability_datasets/round1_*.csv
+reliability_datasets/round2_*.csv
+reliability_datasets/round3_*.csv
+reliability_datasets/*tweets_from_reserve_sample.tsv
 results_not_on_git/
 tweet_training_set/1001-2000tweets_from_reserve_sample.tsv
 tweet_training_set/Initial_training_posts_20200901_with_duplicates.xls
