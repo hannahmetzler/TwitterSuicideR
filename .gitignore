@@ -26,6 +26,7 @@ reliability_datasets/round1_*.csv
 reliability_datasets/round2_*.csv
 reliability_datasets/round3_*.csv
 reliability_datasets/*tweets_from_reserve_sample.tsv
+reliability_datasets/check_for_awareness_tweets.tsv
 results_not_on_git/
 tweet_training_set/1001-2000tweets_from_reserve_sample.tsv
 tweet_training_set/Initial_training_posts_20200901_with_duplicates.xls
@@ -42,4 +43,9 @@ tweet_training_set/training_posts20201105_3181tweets.tsv
 tweet_training_set/training_posts20201124_multiple_labels.tsv
 tweet_training_set/training_posts20201126_corrections_true_label_errors.tsv
 tweet_training_set/training_posts20201130_main_categories.R
+tweet_training_set/training_posts_initial558tweets_05162020.xlsx
+full_tweet_set_for_predictions_withRTs_inquery/
+
+
+
 
