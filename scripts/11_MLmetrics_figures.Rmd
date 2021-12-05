@@ -27,16 +27,40 @@ s = 15
 ```
 
 ```{r, read & format data}
-d6 = read.csv('../results/BERT2_intraclass_performance_6_classes.csv')
-head(d6)
+rm(list=ls())
+load('../results/intraclass_performance_6_classes.Rdata')
+
 #order categories
-ord_mcategory= c( "Suicidal", "Coping", "Awareness", "Prevention", "Werther", "Irrelevant")
-d6 <- d6 %>% 
+ord_mcategory= c( "Suicidal", "Coping", "Awareness", "Prevention", "Suicide cases", "Irrelevant")
+
+#function for formatting model intraclass performance scores for 6 categories (enter perClass$bert, perClass$xlnet, perClass$tfidf)
+format6cl = function(df){
+d6 =  df  %>% 
+  mutate(Main_category = recode(main_category,"suicidality"="Suicidal", "coping"="Coping", "awareness"="Awareness", "prevention"="Prevention", "werther"="Suicide cases", "irrelevant"="Irrelevant")) %>% 
+  #order factor levels
   mutate(Main_category = factor(Main_category, levels = ord_mcategory, labels = ord_mcategory)) %>% 
-  mutate(Main_category = recode(Main_category, Werther = "Suicide cases"))
-#long format
-d6l = pivot_longer(d6, cols = c("Precision", "Recall", "F1", "Accuracy"), names_to = "Metric", values_to ="Score") %>% 
-  mutate(Metric = factor(Metric, levels = c("Precision", "Recall", "F1", "Accuracy"), labels = c("Precision", "Recall", "F1", "Accuracy")))
+  select(-main_category) %>% 
+  rename("Pr" = "Precision", "Re" = "Recall")
+
+#long format with one column for score, and one each for Lower/Upper
+
+#instructions here: 
+# This regular expressions "(.*)(..)$" means:
+# ( ) ( ) Look for two parts,
+# (..) the first part should have just 2 characters
+# (.*) the second part should have zero or more characters  at the “$” end of the string
+
+longer<-pivot_longer(d6, cols=-"Main_category", names_pattern = "(..)(.*)$", names_to = c("Metric", "CI")) %>% 
+  #if ci empty (because no second part), replace it with "value"
+     mutate(CI=ifelse(CI=="", "Score" , CI))
+#Create one column for each CI limit and score, keep the columns Metric and main_category
+d6l <-pivot_wider(longer, id_cols = c(Metric, Main_category), names_from = c(CI), 
+                     values_from = value,  names_repair = "check_unique") %>% 
+    mutate(Metric = factor(Metric, levels = c("Pr", "Re", "F1"), labels = c("Precision", "Recall", "F1")))
+return(d6l)
+}
+
+d6l = format6cl(perClass$bert)
 ```
 
 # Figure 6 classes intra-class performance
@@ -44,22 +68,20 @@ d6l = pivot_longer(d6, cols = c("Precision", "Recall", "F1", "Accuracy"), names_
 ```{r, BERT 2 intraclass 6 classes per class, cache=F}
 plot6 = ggplot(d6l, aes(x=Main_category, y = Score, fill=Metric, colour = Metric)) + #dataset and variables to plot
   geom_bar(stat="identity", position = position_dodge2(width = 0.9))+
-  # geom_errorbar(aes(ymin = ci_low,ymax = ci_high), width=0.5, size=0.8) +
-  labs(y="BERT 2 performance score", x="") +
+   labs(y="BERT performance score", x="") +
   scale_fill_manual(values=alpha(cols, 0.7), name="")+
-   scale_colour_manual(values=cols, name="")+
+  scale_colour_manual(values=cols, name="")+
   scale_y_continuous(breaks = seq(0, 1, 0.1), limits = c(0, 0.95))+
   theme_bw() +
   theme(legend.position="bottom", text=element_text(size=s), axis.title.x=element_blank(), plot.margin = margin(rep(0.5,4), unit="cm"))
 plot6
 ```
 
-```{r, BERT 2 intraclass 6 classes per metric, cache=T, fig.height=7, fig.width=7}
+```{r, BERT 2 intraclass 6 classes per metric, cache=T, fig.height=4.5, fig.width=6}
 plotm = ggplot(d6l, aes(x=Main_category, y = Score, fill=Main_category, colour = Main_category)) + #dataset and variables to plot
   geom_bar(stat="identity", position = position_dodge2(width = 0.9))+
-  # geom_errorbar(aes(ymin = ci_low,ymax = ci_high), width=0.5, size=0.8) +
   labs(y="BERT performance", x="") +
-  facet_wrap(~Metric, ncol=2)+
+  facet_wrap(~Metric, ncol=3)+
   scale_fill_manual(values=alpha(mycols2, 0.7), name="")+
    scale_colour_manual(values=mycols2, name="")+
   scale_y_continuous(breaks = seq(0, 1, 0.2), limits = c(0, 0.97))+
@@ -71,41 +93,44 @@ ggsave('../figures/Figure_BERT_intraclass_6categories.pdf', plotm, width=6, heig
 
 
 ```{r, read data about suicide BERT}
-ds = read.csv('../results/BERT2_intraclass_performance_about_suicide.csv', sep=',')
+load('../results/intraclass_performance_aboutsuicide.Rdata')
+ds = perClass$bert
 #long format
-dsl = pivot_longer(ds, cols = c("Precision", "Recall", "F1", "Accuracy"), names_to = "Metric", values_to ="Score") %>% 
-  mutate(Metric = factor(Metric, levels = c("Precision", "Recall", "F1", "Accuracy"), labels = c("Precision", "Recall", "F1", "Accuracy")))
-
+dsl = pivot_longer(ds, cols = c("Precision", "Recall", "F1"), names_to = "Metric", values_to ="Score") %>% 
+  mutate(About_suicide = recode(about_suicide, correct = "About suicide", false="Off-topic")) %>% 
+  select(-about_suicide) %>% 
+  
+  mutate(Metric = factor(Metric, levels = c("Precision", "Recall", "F1"), labels = c("Precision", "Recall", "F1"))) 
+dsl
 cols2 = c("#AA4371", "grey")
 ```
 # Figure about suicide intra-class performance
 
-```{r, BERT 2 intraclass about suicide, cache=T,  fig.height=7, fig.width=7}
+```{r, BERT 2 intraclass about suicide, cache=T,  fig.height=3.5, fig.width=7}
 plotabout = ggplot(dsl, aes(x=About_suicide, y = Score, fill=About_suicide, colour = About_suicide)) + #dataset and variables to plot
   geom_bar(stat="identity", position = position_dodge2(width = 0.9))+
   # geom_errorbar(aes(ymin = ci_low,ymax = ci_high), width=0.5, size=0.8) +
   labs(y="BERT performance", x="") +
-  facet_wrap(~Metric, ncol=2)+
+  facet_wrap(~Metric, ncol=3)+
   scale_fill_manual(values=alpha(cols2, 0.7), name="")+
    scale_colour_manual(values=cols2, name="")+
   scale_y_continuous(breaks = seq(0, 1, 0.2), limits = c(0, 0.97))+
   theme_bw() +  
-  theme(axis.text.x = element_text(angle = 60, hjust=1), legend.position="none", text=element_text(size=s), axis.title.x=element_blank(), plot.margin = margin(rep(0.4,4), unit="cm"))
+  theme(legend.position="none", text=element_text(size=s), axis.title.x=element_blank(), plot.margin = margin(rep(0.4,4), unit="cm"))
 plotabout
-plotabout_b = plotabout + theme(axis.title.y = element_blank())
-ggsave('../figures/Figure_BERT_intraclass_about_suicide.pdf', plotabout, width=4, height=5.2, dpi=300)
+ggsave('../figures/Figure_BERT_intraclass_about_suicide.pdf', plotabout, width=4.5, height=7, dpi=300)
 ```
 
 # Combined figure for paper
 
-```{r, fig.width=8.5, fig.height=5}
+```{r, fig.width=7, fig.height=7}
 
-combined = ggarrange(plotm, plotabout_b, ncol=2, nrow=1, align = "hv",
+combined = ggarrange(plotm, plotabout, ncol=1, nrow=2, align = "hv",
             labels = c("a", "b"), widths = c(2.1,1), font.label = list(size = 16))
 combined
 
 ggsave('../figures/Figure1_BERT_intraclasses_permetric.pdf', combined,
-      width=8.5, height=5.2, dpi=300)
+      width=7, height=7, dpi=300)
 ```
 
 
