@@ -51,7 +51,7 @@ dp1 = dp1 %>%
   mutate(main_category_prediction = factor(main_category_prediction), 
          about_suicide_prediction = factor(main_category_prediction),
          rt_original_tweet = as.numeric(rt_original_tweet), 
-           date = as.Date(date), 
+             date = as.Date(date), 
          retweet = if_else(retweet=="null", 0, 1))
 
 str(dp1)
