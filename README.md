@@ -12,7 +12,7 @@ All code for training the machine learning models is available at: https://githu
 - results: outputs created by the script, which are then used for further scripts, or used as tables in the paper
 - tweet_training_set: contains the final version of the training set without tweet text
 - data_tweet_volumes: daily volumes of tweets per category
-- full_tweet_set_for_predictions_withRTs_inquery/ includes the full set of 14 million tweets (including retweets) for which we predicted labels using BERT (the predictions dataset), no tweet text, but id's, date, 
+- full_tweet_set_for_predictions_withRTs_inquery/ includes the full set of 14 million tweets (including retweets) for which we predicted labels using BERT (the predictions dataset), no tweet text, but tweet id's, date, retweets of the original tweet, if the tweet is a retweet or not, and whether it contains the lifeline number or a search term referring to the lifeline. It was too large to upload to github, and can be downloaded at: www.doi.org/10.17605/OSF.IO/9WX7V
 
 
 ## Scripts that CAN be run with the datasets available in the repository
