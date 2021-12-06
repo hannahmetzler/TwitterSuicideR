@@ -50,6 +50,8 @@ The years 2017-2019 are a lot messier.
 
 So overall, the question is: Is the correspondence between actual tweet volumes (brandwatch) and our ML dataset volume good enough for going ahead with the time series analysis? 
 
+Edit in Dec 21: eventually, we did not go with this approximation of retweets per day, be redownloaded a dataset with retweets. See script 09 withRTs. 
+
 # Dataset description
 
 We initially downloaded tweets from crimson hexagon on April 15th 2020, including all tweets containing a suicide-related term from January 1st 2013 to April 14th 2020. We excluded terms that clearly do not refer to suicide as the act of killing oneself. The query on Crimson Hexagon was: 

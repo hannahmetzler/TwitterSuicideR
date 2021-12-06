@@ -23,6 +23,7 @@ library(lubridate)
 library(beepr) # to beep after a long analysis is finished
 library(wordcloud)
 library(tidytext) #for making word list with frequencies
+library(stringr)
 ```
 
 
@@ -31,7 +32,7 @@ library(tidytext) #for making word list with frequencies
 load("../data_tweet_volumes/Suicide_tweets_daily_volume_per_maincategory_withRTs.R")
 # load("../data_tweet_volumes/Suicide_tweets_daily_volume_aboutsuicide.R")
 
-#our source script (but this takes a couple of minutes)
+#or source script (but this takes a couple of minutes)
 # source('06BuildpredictionTimelineDataset.R')
 
 #order of categories for plots
@@ -379,7 +380,7 @@ plot_timeseries
 # ggsave('../figures/Daily_timeseries_per_categoryR.pdf',  plot_timeseries, width=10, height=13, dpi=300)
 ```
 
-# Idenfication of peaks and associated events
+  # Idenfication of peaks and associated events
 
 ```{r, tweet text preprocessing}
 #set date format to english

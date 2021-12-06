@@ -53,6 +53,9 @@ library(lubridate) #to format dates
 #load newest version of training sample (8 more coping tweets, 5 more suicidality, 9 more bereaved)
 d = read.csv('../tweet_training_set/training_posts20201201_main_categories.tsv', header=TRUE, sep='\t')
 
+#not text version
+d = read.csv('../tweet_training_set/training_posts20201201_main_categories_no_tweet_text.tsv', header=TRUE, sep='\t')
+
 #define the order of categories for plots
 ord_category_details <- c("suicidality1","suicidality3","coping1", "coping3", "news_coping", "news_suicidality", "bereaved_negative", "bereaved_coping","awareness", "prevention",  "werther", "life_saved", "suicide_other","off-topic")
 ord_category <- c("suicidality","coping", "news_coping", "news_suicidality", "bereaved_negative", "bereaved_coping","awareness", "prevention",  "werther", "life_saved", "suicide_other","off-topic")

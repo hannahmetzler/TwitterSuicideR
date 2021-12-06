@@ -347,6 +347,9 @@ byclass
 
 ```{r, save dataset with predictions and human labels}
 save(d4, file  = '../reliability_datasets/round4_150x5_suicide_human&model_BERT_finetuned.R')
+d4_notext = d4 %>% 
+  select(-c(text, time, predictionBERT1))
+save(d4_notext, file  = '../reliability_datasets/round4_150x5_suicide_human&model_BERT_finetuned_notext.R')
 ```
 
 

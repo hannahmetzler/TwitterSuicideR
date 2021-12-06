@@ -114,10 +114,10 @@ x = d %>%
 ```{r}
 p=as.data.frame(x%>% 
   filter(prediction=="Coping"))
-#print the text only
-p %>% 
-  mutate(no = 1:n()) %>% 
-  relocate(no, .before=text) %>% 
+# #print the text only: cannot be printed to PDF with matrix because of emojis in some tweets, at least not with LATEX. Look at the tweets within R. 
+p %>%
+  mutate(no = 1:n()) %>%
+  relocate(no, .before=text) %>%
   select(no, text)
 
 #print the labels only
