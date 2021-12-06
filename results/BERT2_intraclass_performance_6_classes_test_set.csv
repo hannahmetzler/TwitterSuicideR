@@ -1,0 +1,7 @@
+Main_category,Precision,Recall,F1
+Suicidal,0.582,0.452,0.51
+Coping,0.762,0.688,0.722
+Awareness,0.708,0.7,0.696
+Prevention,0.81,0.886,0.846
+Werther,0.75,0.77,0.762
+Irrelevant,0.636,0.65,0.6375
