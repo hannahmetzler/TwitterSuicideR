@@ -4,7 +4,10 @@
 .Ruserdata
 scripts/01IntercoderReliablity_CodingSchemes.pdf scripts/01IntercoderReliablity.pdf
 scripts/01IntercoderReliablity_CodingSchemes_files/figure-latex/
-scripts/Correcting_Tweet_IDs_of_Classification_File.ipynb scripts/twitter-1-rehydration.ipynb scripts/twitter-2-cleaning-text-removing-duplicates.ipynb scripts/twitter-3-removing-classification-tweets-for-language-model-training.ipynb scripts/twitter-4-training-lm-fastai2_10_nlp.ipynb scripts/twitter-suicide-tweets(200k).ipynb scripts/twitter-suicide-tweets(2million)_crossvalidation.ipynb scripts/twitter-suicide-tweets(2million).ipynb scripts/twitter-suicide-tweets.ipynb
+scripts/Correcting_Tweet_IDs_of_Classification_File.ipynb scripts/twitter-1-rehydration.ipynb scripts/twitter-2-cleaning-text-removing-duplicates.ipynb scripts/twitter-3-removing-classification-tweets-for-language-model-training.ipynb scripts/twitter-4-training-lm-fastai2_10_nlp.ipynb scripts/twitter-
+scripts/*.log
+
+suicide-tweets(200k).ipynb scripts/twitter-suicide-tweets(2million)_crossvalidation.ipynb scripts/twitter-suicide-tweets(2million).ipynb scripts/twitter-suicide-tweets.ipynb
 figures/
 tweets_text/
 *.pdf
@@ -25,6 +28,7 @@ tweets_other_datasets/
 
 
 #reliability datasets previous rounds and files with damaged IDs, empty files to fill in the labels
+reliability_datasets/test_withPredictions_20201116_features.csv
 reliability_datasets/round1_*.csv
 reliability_datasets/round2_*.csv
 reliability_datasets/round3_*.csv
@@ -39,9 +43,13 @@ reliability_datasets/round3b_342_suicide_Hannah_6categories_empty.csv
 reliability_datasets/round4_150x5_suicide_Hannah_complete_IDscut.csv
 reliability_datasets/round4_150x5_suicide_Thomas_complete_IDsrepaired.xlsx
 reliability_datasets/round4_150x5_suicide_Thomas_original.csv
+reliability_datasets/round4_150x5_suicide_human&model_BERT_finetuned.R
 
-
-
+#reliability datasets with tweet text
+reliability_datasets/round4_150x5_suicide_Hannah_complete_IDsrepaired.csv
+reliability_datasets/round4_150x5_suicide_Thomas_complete_IDsrepaired.csv
+reliability_datasets/round4_150x5_suicide_withpredictions_BERT_finetuned.csv
+   
 #output files produced by script, not needed by other scripts or for tables
 results_not_on_git/
 
@@ -67,9 +75,32 @@ tweet_training_set/training_posts_initial558tweets_05162020.xlsx
 tweet_training_set/training_posts20201201_main_categories.csv
 tweet_training_set/training_posts20201201_main_categories.tsv
 
+#tweet volumes for predictions datasets based on tweets without RTs downloaded etc
+data_tweet_volumes/Suicide_tweets_daily_volume_aboutsuicide.R
+data_tweet_volumes/Suicide_tweets_daily_volume_aboutsuicide.csv
+data_tweet_volumes/Suicide_tweets_daily_volume_aboutsuicide_withRTs.csv
+data_tweet_volumes/Suicide_tweets_daily_volume_per_maincategory.R
+data_tweet_volumes/Suicide_tweets_daily_volume_per_maincategory.csv
+data_tweet_volumes/Suicide_tweets_daily_volume_per_maincategory_withRTs.csv
+data_tweet_volumes/Volume_suicide_tweets_alltypes_allfollowers_20190101-20200416.csv
+data_tweet_volumes/Volume_suicide_tweets_no_retweet_all_with_suicid*term_2013-01-01_2020-06-02.xls
 
-full_tweet_set_for_predictions_withRTs_inquery/
 
+#full tweet sets with text
+full_tweet_set_for_predictions_withRTs_inquery/Tweets1.json.gz
+full_tweet_set_for_predictions_withRTs_inquery/Tweets2.json.gz
+full_tweet_set_for_predictions_withRTs_inquery/Tweets3.json.gz
+full_tweet_set_for_predictions_withRTs_inquery/Tweets4.json.gz
+full_tweet_set_for_predictions_withRTs_inquery/extract_tweets_from_json.sh
+full_tweet_set_for_predictions_withRTs_inquery/suicide_tweets_with_RT.tsv
+full_tweet_set_for_predictions_withRTs_inquery/suicide_tweets_with_RT_predictions.tsv
+full_tweet_set_for_predictions_withRTs_inquery/tweet_text
+full_tweet_set_for_predictions_withRTs_inquery/twitter_14M_with_predictions_withRTs.csv
+full_tweet_set_for_predictions_withRTs_inquery/twitter_14M_with_predictions_withRTs.zip
+full_tweet_set_for_predictions_withRTs_inquery/README
+full_tweet_set_for_predictions_withRTs_inquery/isrt.csv
+full_tweet_set_for_predictions_withRTs_inquery/lifeline
+full_tweet_set_for_predictions_withRTs_inquery/rts.csv
 
 
 
