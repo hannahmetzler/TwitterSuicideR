@@ -7,21 +7,30 @@ library(beepr) # to beep after a long analysis is finished
 #set date format to english
 Sys.setlocale("LC_ALL", 'en_US.UTF-8')
 
+
+### this part only works if you have the original files with tweet text, skip to next section if you don't, where you can load the file I prepare here, but without tweet text ####
+
 #new predictions file based on Crimson Hexagon query including Retweets, to get more precise estimate per day
 dp = read.csv('full_tweet_set_for_predictions_withRTs_inquery/twitter_14M_with_predictions_withRTs.csv', stringsAsFactors=F, sep='\t', colClasses = "character")
+  
+#which tweets mention a lifeline or suicide hotline or their number/twitter account?
+lifeline = read.csv("full_tweet_set_for_predictions_withRTs_inquery/lifeline", header=FALSE)  %>% 
+  rename(lifeline = V1)
+
 #retweet count
 rt = read.csv('full_tweet_set_for_predictions_withRTs_inquery/rts.csv', stringsAsFactors=F, sep='\t', colClasses = "character", header=F) %>% 
   rename(rt_original_tweet = V1)
 #is tweet a retweet or not? if yes, id of original tweet, if no, null
-isrt = read.csv('full_tweet_set_for_predictions_withRTs_inquery/isrt.csv', stringsAsFactors=F, sep='\t', colClasses = "character", header=F) 
+isrt = read.csv('full_tweet_set_for_predictions_withRTs_inquery/isrt.csv', stringsAsFactors=F, sep='\t', colClasses = "character", header=F) %>% 
   rename(retweet = V1) 
  #recode tweet ids to 1, null to 0, for true/false
   mutate(retweet = if_else(retweet == "null", 0, 1))
-dp1 = cbind(dp, rt, isrt) %>% 
+dp1 = cbind(dp, rt, isrt, lifeline) %>% 
   mutate(main_category = factor(main_category), 
          about_suicide = factor(about_suicide)) %>% 
   #rename factor levels and variables
   rename(id = ID) %>% 
+  mutate(retweet = if_else(retweet=="null", 0, 1)) %>% 
   mutate(about_suicide = factor(about_suicide, labels = c("yes", "no"))) %>% 
   rename(about_suicide_prediction = about_suicide, 
          main_category_prediction = main_category) %>% 
@@ -29,7 +38,21 @@ dp1 = cbind(dp, rt, isrt) %>%
          #format date
          date = as.Date(time, format = "%B %d %Y")) %>% 
   #delete time column
-  select(-time)
+  select(-time) #%>% 
+  # select(-text) #only for printing file without text
+
+# write.csv(dp1, 'full_tweet_set_for_predictions_withRTs_inquery/twitter_14M_with_predictions_withRTs_lifeline_notext.csv', row.names = F)
+
+
+# if you don't have the file with tweet text, start here and ignore the above code: ####
+
+dp1 = read.csv('full_tweet_set_for_predictions_withRTs_inquery/twitter_14M_with_predictions_withRTs_lifeline_notext.csv')
+dp1 = dp1 %>% 
+  mutate(main_category_prediction = factor(main_category_prediction), 
+         about_suicide_prediction = factor(main_category_prediction),
+         rt_original_tweet = as.numeric(rt_original_tweet), 
+           date = as.Date(date), 
+         retweet = if_else(retweet=="null", 0, 1))
 
 str(dp1)
 nrow(dp1)

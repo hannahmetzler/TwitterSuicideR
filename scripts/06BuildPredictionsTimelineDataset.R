@@ -5,7 +5,7 @@
 # with replace/delete some characters using sed, seperating the instances to replace with ;
 # 1. delete the " at start of each line, 2. replace the \" around every cell with only ",
 # 3. delete the first 5 characters of each line, because they include the weekdays which R cannot interpret, and replace only with "
-# zcat tweet_ids_set_rehydrated-time_id_text.csv.gz | awk -F' ' '{print  $1" "$2" "$3" "$6}' | awk -F, '{print $1"'\\t'"$2}' | sed 's/"//; s/\\"/"/g ; s/^...../"/' > tweet_date_id
+  # zcat tweet_ids_set_rehydrated-time_id_text.csv.gz | awk -F' ' '{print  $1" "$2" "$3" "$6}' | awk -F, '{print $1"'\\t'"$2}' | sed 's/"//; s/\\"/"/g ; s/^...../"/' > tweet_date_id
 
 
 #libraries
