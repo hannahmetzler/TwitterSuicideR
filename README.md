@@ -12,7 +12,27 @@ All code for training the machine learning models is available at: https://githu
 - results: outputs created by the script, which are then used for further scripts, or used as tables in the paper
 - tweet_training_set: contains the final version of the training set without tweet text
 - data_tweet_volumes: daily volumes of tweets per category
-- in addition to these folders, you need to add a folder with the name: "full_tweet_set_for_predictions_withRTs_inquery" after cloning this repository. It is the folder for predictions dataset with 14 million tweets (7.15 in the years 2016-2018) for which we predicted labels using BERT. It contains no tweet text, but tweet id's, date, number of retweets of the original tweet, if the tweet is a retweet or not, and whether it contains the lifeline number or a search term referring to the lifeline. It was too large to upload to github, and can be downloaded at: www.doi.org/10.17605/OSF.IO/9WX7V. 
+- in addition to these folders, you need to add a folder with the name: "full_tweet_set_for_predictions_withRTs_inquery" after cloning this repository. It is the folder for predictions dataset with 14 million tweets (7.15 in the years 2016-2018) for which we predicted labels using BERT. It contains no tweet text, but tweet id's, date, number of retweets of the original tweet, if the tweet is a retweet or not, and whether it contains the lifeline number or a search term referring to the lifeline. It was too large to upload to github, and can be downloaded at: www.doi.org/10.17605/OSF.IO/9WX7V.
+
+### Dataset documentation
+
+**Training data set** (training_posts20201201_main_categories_no_tweet_text.tsv)
+
+- timestamp: publication date and time of the tweet
+- tweet_id: ID needed to redownload the tweet via the Twitter API (rehydration)
+- set: the subset of the dataset as described in the Manuscript, section "Creating the Annotation Scheme and Labelled Dataset":
+    1. inital_training_set_coded_on_CH denotes the about 550 tweets coded on the Crimson Hexagon platform in step 1 of dataset creation. 
+    2. reliability_testing_set1 denotes the 500 tweets added in step 2. 
+    3. realibility_testing_set2 deontes the remaining tweets added in step 3, until we reached at least 200 per category
+    4.   basefrequency denotes the 1000 randomly selected tweets that were added to the training set in step 4
+- ambiguous: keywords for tweets the coders found ambiguous at some point during the coding process. E.g. pastsuicidality denotes tweets that speak about suicidality in the past, and implicitly suggest that coping occured, without being explicit.
+- notserious_unclear: tweets that are clearly not serious (jokes, metaphors, exaggerations etc) or where it is unclear if they are serious in contrast to sarcastic etc, are marked with a 1. All other tweets get a 0. 
+- focus: the problem/suffering vs. solution/coping perspective of the tweet: 0= neither problem solution,1 = problem, 2=solution (see Table 1 in the Manuscript)
+- type: denotes the message type (see Table 1 in the Manuscript)
+- category: the 12 detailed categories resulting from crossing focus/perspective and type
+- category2: an alternative 2nd category that would also fit that was considered during labelling (could be used for multi-label machine learning models). Most tweets do not have a second fitting category. 
+- main_category: the 6 categories that models were trained on in the paper (coping, suicidality (=suicidal ideation & attempts), prevention, awareness, werther (=suicide cases) and all other categories combined irrelevant
+- about_suicide: tweet is about actual suicide = 1, not about actual suicide = 0. All tweets except the off-topic category are about actual suicide. 
 
 
 ### Scripts that CAN be run with the datasets available in the repository
