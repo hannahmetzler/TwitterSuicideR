@@ -23,7 +23,8 @@ library(ggpubr) #for multiple plots together
 cols = c("#332288", "#88CCEE", "#44AA99",  '#DDCC77', "#117733", '#999933') #
 mycols2 = c("Awareness"= cols[1], "Suicide cases"=cols[2], "Prevention"=cols[3], "Suicidal"=cols[4], "Coping"=cols[5], "Irrelevant"=cols[6])
 #text size
-s = 15
+s=15
+# s = 7.5 #for paper png figures JMIR
 ```
 
 ```{r, read & format data}
@@ -77,7 +78,7 @@ plot6 = ggplot(d6l, aes(x=Main_category, y = Score, fill=Metric, colour = Metric
 plot6
 ```
 
-```{r, BERT 2 intraclass 6 classes per metric, cache=T, fig.height=4.5, fig.width=6}
+```{r, BERT 2 intraclass 6 classes per metric, cache=T, fig.height=3, fig.width=6}
 plotm = ggplot(d6l, aes(x=Main_category, y = Score, fill=Main_category, colour = Main_category)) + #dataset and variables to plot
   geom_bar(stat="identity", position = position_dodge2(width = 0.9))+
   labs(y="BERT performance", x="") +
@@ -88,7 +89,7 @@ plotm = ggplot(d6l, aes(x=Main_category, y = Score, fill=Main_category, colour =
   theme_bw() +  
   theme(axis.text.x = element_text(angle = 60, hjust=1.2, vjust=1.15), legend.position="none", text=element_text(size=s), axis.title.x=element_blank(), plot.margin = margin(rep(0.4,4), unit="cm"))
 plotm
-ggsave('../figures/Figure_BERT_intraclass_6categories.pdf', plotm, width=6, height=5.2, dpi=300)
+ggsave('../figures/Figure_BERT_intraclass_6categories.pdf', plotm, width=6, height=3, dpi=300)
 ```
 
 
@@ -101,7 +102,6 @@ dsl = pivot_longer(ds, cols = c("Precision", "Recall", "F1"), names_to = "Metric
   select(-about_suicide) %>% 
   
   mutate(Metric = factor(Metric, levels = c("Precision", "Recall", "F1"), labels = c("Precision", "Recall", "F1"))) 
-dsl
 cols2 = c("#AA4371", "grey")
 ```
 # Figure about suicide intra-class performance
@@ -118,19 +118,20 @@ plotabout = ggplot(dsl, aes(x=About_suicide, y = Score, fill=About_suicide, colo
   theme_bw() +  
   theme(legend.position="none", text=element_text(size=s), axis.title.x=element_blank(), plot.margin = margin(rep(0.4,4), unit="cm"))
 plotabout
-ggsave('../figures/Figure_BERT_intraclass_about_suicide.pdf', plotabout, width=4.5, height=7, dpi=300)
+# ggsave('../figures/Figure_BERT_intraclass_about_suicide.pdf', plotabout, width=7, height=3.5, dpi=300)
 ```
 
 # Combined figure for paper
 
-```{r, fig.width=7, fig.height=7}
+```{r, fig.width=7, fig.height=6}
 
-combined = ggarrange(plotm, plotabout, ncol=1, nrow=2, align = "hv",
-            labels = c("a", "b"), widths = c(2.1,1), font.label = list(size = 16))
+combined = ggarrange(plotm, plotabout, ncol=1, nrow=2, heights = c(1.3,1),
+            labels = c("a", "b"), font.label = list(size = 16))
 combined
 
-ggsave('../figures/Figure1_BERT_intraclasses_permetric.pdf', combined,
-      width=7, height=7, dpi=300)
+# ggsave('../figures/Figure1_BERT_intraclasses_permetric.png', combined,
+#       width=4, height=3.5)
+#needed for png at JMIR: max 2100x1800 pixels, so reduce font size s to 7.5, and width/height to 4 and 3.5
 ```
 
 
@@ -162,3 +163,20 @@ plotma
 ggsave('../figures/Model_comparison_6categories.pdf', plotma, width=6, height=4, dpi=300)
 ```
 
+
+# Intraclass BERT 6 classes figure for presentations
+
+
+```{r, BERT 2 intraclass 6 classes per metric, cache=T, fig.height=3, fig.width=8}
+plotm = ggplot(d6l, aes(x=Main_category, y = Score, fill=Main_category, colour = Main_category)) + #dataset and variables to plot
+  geom_bar(stat="identity", position = position_dodge2(width = 0.9))+
+  labs(y="BERT performance", x="Category") +
+  facet_wrap(~Metric, ncol=3)+
+  scale_fill_manual(values=alpha(mycols2, 0.7), name="",  guide = guide_legend(nrow=1, ncol = 6, byrow = T))+
+   scale_colour_manual(values=mycols2, name="", guide = guide_legend(nrow=1, ncol = 6, byrow = T))+
+  scale_y_continuous(breaks = seq(0, 1, 0.2), limits = c(0, 0.97))+
+  theme_bw() +  
+  theme(axis.text.x = element_blank(), legend.position="bottom", text=element_text(size=s), plot.margin = margin(rep(0.4,4), unit="cm"),   axis.ticks.x = element_blank())
+plotm
+ggsave('../figures/Figure_BERT_intraclass_6categories_legendbottom.pdf', plotm, width=8, height=3, dpi=300)
+```
