@@ -1,7 +1,7 @@
 # TwitterSuicideR
 Project classifying tweets about suicide into different classes relevant for media effects research for suicide prevention
 
-Our datasets do not include the text of tweets, in order to protect sensitive user data. Either rehydrate the IDs to get tweet, or contact me at metzler@csh.ac.at to get the datasets including tweet text. 
+Our datasets do not include the text of tweets, in order to protect sensitive user data. Either rehydrate the IDs via the Twitter API to get all tweets that have not been deleted by their authors in the mean time, or contact me at metzler@csh.ac.at to get the datasets including tweet text. Please explain your use case to help us make a decision. We share the dataset with non-profit organizations, or projects that clearly benefit the data subjects or have scientific value. 
 
 All code for training the machine learning models is available at: https://github.com/HubertBaginski/TwitterSuicideML. 
 
