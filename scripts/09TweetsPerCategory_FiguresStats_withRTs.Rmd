@@ -362,6 +362,10 @@ ggplot(data=filter(dcatperwday, prediction =="coping" | prediction == "suicidali
 
 # Daily timeline of daily tweets per category
 
+
+## All 6 categories
+
+
 ```{r, fig.width=10, fig.height=12}
 Sys.setlocale("LC_ALL", 'en_US.UTF-8')
 plot_timeseries = ggplot(data=dpaper, aes(x=date, y=percent, colour = prediction))+
@@ -380,7 +384,28 @@ plot_timeseries
 # ggsave('../figures/Daily_timeseries_per_categoryR.pdf',  plot_timeseries, width=10, height=13, dpi=300)
 ```
 
-  # Idenfication of peaks and associated events
+## Selected categories: IC2S2 abstract
+
+```{r, fig.width=10, fig.height=4}
+Sys.setlocale("LC_ALL", 'en_US.UTF-8')
+ic2s2 = filter(dpaper, prediction == "Coping" | prediction == "Prevention")
+plot_timeseries = ggplot(data=ic2s2, aes(x=date, y=percent, colour = prediction))+
+  geom_line()+
+  theme_bw()+
+  scale_colour_manual(values=mycols2)+
+  scale_x_date(breaks = seq(as.Date("2016-01-01"), as.Date("2019-01-01"), by="3 months"), 
+               date_labels = "%b %y", minor_breaks = "1 month", expand = c(0.01,0.01))+
+  facet_wrap(~prediction, ncol=1)+
+  ylab("Percent per category")+
+  theme(legend.position="none", text=element_text(size=s+5), axis.title.x=element_blank(), plot.margin = margin(rep(0.5,4), unit="cm"), 
+        axis.text.x = element_text(angle = 45, hjust=1))+
+  geom_vline(aes(xintercept=as.Date("2017-01-01")), colour = "grey", linetype=3)+
+  geom_vline(aes(xintercept=as.Date("2018-01-01")), colour = "grey", linetype = 3)
+plot_timeseries
+ggsave('../figures/Daily_timeseries_Coping_PreventionR.svg',  plot_timeseries, width=10, height=5, dpi=300)
+```
+
+# Idenfication of peaks and associated events
 
 ```{r, tweet text preprocessing}
 #set date format to english
