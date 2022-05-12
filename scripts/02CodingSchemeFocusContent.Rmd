@@ -32,7 +32,13 @@ rs <- read.csv('../tweet_training_set/1-1000tweets_basefrequency_categories_labe
   select(-Order)
 #names(training); names(rs)
 totaltrain <- rbind(training, rs)
+xtabs(~Set, totaltrain)
 ```
+
+Sample sizes: 
+* keyword + ML labeled training set: `r nrow(training)`
+* random labelled set: `r nrow(rs)`
+* total (both together): `r nrow(totaltrain)`
 
 How many tweets per category (all small categories included) in all coded tweets? 
 ```{r}
