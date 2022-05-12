@@ -19,6 +19,8 @@ library(tidyr)
 library(ggplot2)
 library(ggpubr) #for multiple plots together
 
+rm(list=ls())
+
 # figure settings
 cols = c("#332288", "#88CCEE", "#44AA99",  '#DDCC77', "#117733", '#999933') #
 mycols2 = c("Awareness"= cols[1], "Suicide cases"=cols[2], "Prevention"=cols[3], "Suicidal"=cols[4], "Coping"=cols[5], "Irrelevant"=cols[6])
@@ -28,7 +30,7 @@ s=15
 ```
 
 ```{r, read & format data}
-rm(list=ls())
+
 load('../results/intraclass_performance_6_classes.Rdata')
 
 #order categories
@@ -140,6 +142,7 @@ combined
 Figure for presentations
 
 ```{r, read macro 6 categories data}
+#not on new laptop yet, check hard drive
 dma = read.csv('../results/Model_comparison_macro.csv', sep=',')
 #long format
 dmal = pivot_longer(dma, cols = c("Precision", "Recall", "F1", "Accuracy"), names_to = "Metric", values_to ="Score") %>% 

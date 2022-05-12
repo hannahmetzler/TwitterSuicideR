@@ -54,7 +54,7 @@ library(lubridate) #to format dates
 d = read.csv('../tweet_training_set/training_posts20201201_main_categories.tsv', header=TRUE, sep='\t')
 
 #not text version
-d = read.csv('../tweet_training_set/training_posts20201201_main_categories_no_tweet_text.tsv', header=TRUE, sep='\t')
+# d = read.csv('../tweet_training_set/training_posts20201201_main_categories_no_tweet_text.tsv', header=TRUE, sep='\t')
 
 #define the order of categories for plots
 ord_category_details <- c("suicidality1","suicidality3","coping1", "coping3", "news_coping", "news_suicidality", "bereaved_negative", "bereaved_coping","awareness", "prevention",  "werther", "life_saved", "suicide_other","off-topic")
@@ -64,7 +64,8 @@ ord_mcategory= c( "suicidality", "coping", "awareness", "prevention", "werther",
 #format variables
 d <- d %>% 
   #make subcategories without details (i.e. the 1/3 perspective annotation combined) 
-  rename(category_details = category) %>% 
+  rename(category_details = category, 
+         tweet_text = contents) %>% 
   mutate(category = recode(category_details, coping1 = "coping", coping3 = "coping", suicidality1 = "suicidality", suicidality3 = "suicidality")) %>% 
   #order the categories
   mutate(category = factor(category, levels = ord_category, labels = ord_category),
@@ -91,14 +92,32 @@ d = d %>%
     str_detect(timestamp, "/") == TRUE     ~ as.Date(timestamp, format = "%m/%d/%Y %I:%M"), #2502 NAs, type c
     str_detect(timestamp, "-") == TRUE     ~ as.Date(timestamp, format = "%Y-%m-%d %H:%M:%S") #2596 NAs, type a
   )) %>% 
-  mutate(date = lubridate::ymd(date))
+  mutate(date = lubridate::ymd(date)) %>% 
+  relocate(date, .before = tweet_id) %>% 
+  relocate(timestamp, .before = "tweet_text") %>% 
+  relocate(c("category", "category_details", "main_category", "category2"), .before = "ambiguous")
 
 ```
 
-# Total sample size
+<!-- # Save clean dataset with time stamps and all category columns -->
+
+<!-- ```{r} -->
+<!-- write.table(d,'../tweet_training_set/training_posts20220321_clean.tsv', sep='\t', row.names=F) -->
+<!-- save(d, file='../tweet_training_set/training_posts20220321_clean.R') -->
+<!-- ``` -->
+
+
+# Sample size
 
 ```{r}
 nrow(d)
+```
+
+```{r}
+# How many tweets in each set of data used to build the training sample?
+d %>% 
+  group_by(set) %>% 
+  summarize(n = n())
 ```
 
 
@@ -153,7 +172,7 @@ prop.main
 s=15
 plot.prop.cat<- ggplot(prop.cat, aes(x=category, y = freq, fill=category)) + #dataset and variables to plot
   geom_bar(stat="identity")+
-  ggtitle(paste("Tweets per subcategory in training sample n =", sum(prop.cat$n,2)))+
+  ggtitle(paste("Tweets per subcategory in training sample n =", sum(prop.cat$n)))+
   labs(y="Proportion", x="") + #axes and title labels
   scale_fill_manual(values=c("#332288", "#88CCEE", "#44AA99", "#117733", '#999933', '#DDCC77', '#CC6677', "#882255", "#332288", "#88CCEE", "#44AA99", "#AA4499", "#999999",  "#444444"))+
   theme_bw() +  
@@ -175,7 +194,7 @@ plot.prop.smallcat
 ```{r,  fig.height=4, width=7}
 plot.n.cat<- ggplot(prop.cat, aes(x=category, y = n, fill=category)) + #dataset and variables to plot
   geom_bar(stat="identity")+
-  ggtitle(paste("Tweets per subcategory in training sample n =", sum(prop.cat$n,2)))+
+  ggtitle(paste("Tweets per subcategory in training sample n =", sum(prop.cat$n)))+
   labs(y="n tweets", x="") + #axes and title labels
   scale_fill_manual(values=c("#332288", "#88CCEE", "#44AA99", "#117733", '#999933', '#DDCC77', '#CC6677', "#882255", "#332288", "#88CCEE", "#44AA99", "#AA4499", "#999999",  "#444444"))+
   theme_bw() +  
@@ -202,14 +221,14 @@ plot.n.smallcat
 
 plot.prop.main<- ggplot(prop.main, aes(x=main_category, y = freq, fill=main_category)) + #dataset and variables to plot
   geom_bar(stat="identity")+
-  ggtitle(paste("Tweets per main category in training sample n=", sum(prop.main$n,2)))+
+  ggtitle(paste("Tweets per main category in training sample n=", sum(prop.main$n)))+
   labs(y="Proportion", x="") + #axes and title labels
   scale_fill_manual(values=c("#332288", "#88CCEE", "#44AA99", "#117733", '#999933', '#DDCC77', '#CC6677', "#882255", "#AA4499"))+
   theme_bw() +  
   theme(axis.text.x = element_text(angle = 45, hjust=1), legend.position="none", text=element_text(size=s))
 plot.n.main<- ggplot(prop.main, aes(x=main_category, y = n, fill=main_category)) + #dataset and variables to plot
   geom_bar(stat="identity")+
-  ggtitle(paste("Tweets per main category in training sample n=", sum(prop.main$n,2)))+
+  ggtitle(paste("Tweets per main category in training sample n=", sum(prop.main$n)))+
   labs(y="n tweets", x="") + #axes and title labels
   scale_fill_manual(values=c("#332288", "#88CCEE", "#44AA99", "#117733", '#999933', '#DDCC77', '#CC6677', "#882255", "#AA4499"))+
   theme_bw() +  
@@ -220,6 +239,9 @@ plot.n.main
 # #pdf('./figures/maincategories_training_sample.pdf', height=5, width=7); plot.prop.main; plot.n.main; #dev.off()
 
 ```
+
+
+
 
 # How many tweets are about suicide in training sample? 
 
