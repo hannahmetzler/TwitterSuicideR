@@ -24,7 +24,7 @@ results/cis*
 scripts/*_cache/
 tweet_training_set/1-1000tweets*
 results/estimated_*
-tweets_other_datasets/
+tweets_full_datasets/
 
 
 #reliability datasets previous rounds and files with damaged IDs, empty files to fill in the labels
