@@ -107,6 +107,14 @@ dcatperday %>%
   summarise(mio_tweets = sum(ndaytotal))
 ```
 
+### How many retweets?
+
+```{r}
+dcatperday %>%
+  filter(year %in% c(2016, 2017, 2018)) %>% 
+  group_by(type) %>% #only first line of 6 categories (ndaytotal is the same on each line)
+  summarise(n_mio = sum(ntweets)/1000000)
+```
 
 ### Sample per year 
 ```{r}
