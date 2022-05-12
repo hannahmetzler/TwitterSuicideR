@@ -78,6 +78,8 @@ Thomas developed a more fine-grained coding scheme based on which we later devel
     
 # Round 1 intereliability
 
+Reliability on 500 tweets (497 after excluding missing labels), coded by Hannah and Thomas and with predictions by the Infersent model. This is reported as step 2 in the 
+
 ```{r, round 1, results="hide"}
 
 #original codings before discussing new rules on June 26, 2020
@@ -105,6 +107,8 @@ unique(df$thomas4)
 unique(df$hannah4)
 unique(df$predicted4)
 ```
+Number of tweets `r nrow(df)` for round 1 inter-rater-reliability. 
+
 ## Agreement between Hannah and Thomas
 
 ```{r, cohens kappa interrater H-T 1}
@@ -114,7 +118,7 @@ unique(df$predicted4)
 (xtabs(~hannah4+thomas4, df))
 #cohen's kappa
 irr::kappa2(df[c("thomas4", "hannah4")])
-  ```
+```
 
 <!-- Examples for tweets where Hannah and Thomas don't agree:  -->
 
@@ -149,7 +153,7 @@ irr::kappa2(df[c("thomas4", "predicted4")])
   
 # Round 2 intereliability
 
-Biased by discussions on the set of tweets that is used to calculated interreliability - does not reflect actual interrater reliability. 
+These are the same tweets as those coded in round 1 above, but different labels for some of them, based on the new coding rules. Biased by discussions on the set of tweets that is used to calculated interreliability, so this does not reflect actual interrater reliability, and is not reported in the paper. 
 
 ```{r, round 2, results="hide"}
 #updated codings implementing the new coding rules - see Coding system Tweets 200630  
@@ -196,7 +200,7 @@ irr::kappa2(df[c("thomas4", "hannah4")])
 #    
 # #replace non unice characters with space
 #   notagree$contents <- iconv(notagree$contents, from = "UTF-8", to = "ASCII", sub = "")
-# #write.csv(file='../output/tweets_noagreement.csv', notagree[c("hannah4", "thomas4", "contents")])
+# #write.csv(file='../results_not_on_git/tweets_noagreement.csv', notagree[c("hannah4", "thomas4", "contents")])
 
 ```
 
@@ -250,7 +254,7 @@ as.data.frame(xtabs(~Category, data=training))
 #write.csv(xtabs(~Category, data=training), file="tweet_training_set/tweets_per_category.csv")    
 ```
 
-About every 3rd tweet was predicted correctly by Infersent predicitons. If we want to get to 200 per category, missing number of tweets are per category: 
+About every 3rd tweet was predicted correctly by Infersent predictions. If we want to get to 200 per category, missing number of tweets are per category: 
 
 ```{r}
 as.data.frame((xtabs(~Category, data=training)-200)*3)
@@ -259,13 +263,14 @@ as.data.frame((xtabs(~Category, data=training)-200)*3)
 So we need to code 400 more for Papageno categories, 200 for Prevention and 150 for Werther. How many per category do we have in the new test set?
 
 ```{r}
-### New test set: Round 3 - create the file for Thomas and Hannah
+### New test set: Round 3 - create the file for Thomas and Hannah, 2000 new tweets with predictions (500 for each category papageno neg, papageno pos, werther, prevention), but no human labels yet.
 dfi <- read.csv('../reliability_datasets/round3_2000_suicide_predictions_infersent_6categories.csv', stringsAsFactors = F) %>% 
   rename(tweetid = GUID, 
          timestamp = Date..CET., 
          contents = Contents, 
          predicted6 = Class
-        )
+        ) %>% 
+  mutate(predicted6 = as.factor(predicted6))
 dfi$set <- rep("reliability_testing_set2", nrow(dfi))
 
 #there are duplicates: 650 - filter them
@@ -281,13 +286,16 @@ dfi1 <- dfi %>%
 xtabs(~predicted6, data=dfi1)
 
 #select all papageno tweets plus some Werther/Prevention (we already have enough training examples for Awareness and Off-topic from previous coding rounds)
+#
 dpapageno <- dfi1 %>% 
   filter(predicted6 == "Papageno_positive" | predicted6 == "Papageno_negative")
+#200 prevention tweets
 dprevention <- dfi1 %>% 
   filter(predicted6 == "Prevention") %>%
   group_by(predicted6) %>% 
   slice(1:200) %>% 
   ungroup()
+#150 werther tweets
 dwerther <- dfi1 %>% 
   filter(predicted6 == "Werther") %>%
   group_by(predicted6) %>% 
@@ -418,6 +426,7 @@ Check for duplicates in the training set first. Which Set are the in? How many r
 
 ```{r}
 #exclude all tweets already contained in the newest training set
+training3 <- read.csv('../tweet_training_set/training_posts20200813.csv', stringsAsFactors = F)
 training3 <- read.csv('../tweet_training_set/training_posts20200814_no_duplicatetext.csv', stringsAsFactors = F)
 #are there duplicates?
 #length(unique(training3$tweetid)) #no duplicate tweet ids
@@ -431,6 +440,7 @@ duplicates <- training3 %>%
   ungroup()
 
 xtabs(~Set, duplicates)
+nrow(duplicates)
 xtabs(~number_of_tweets, duplicates)
 
 ```
@@ -443,8 +453,8 @@ duplicates.coding <- duplicates %>%
   mutate(samecat = length(unique(Category))) %>% 
   ungroup() %>% 
   filter(samecat > 1) 
-#write.csv2(duplicates.coding, file="output/trainingset20200814_duplicates.csv", row.names=F)
-duplicates.corrections <- read.csv("../output/training_posts20200814_duplicates-checked.csv", stringsAsFactors = F) %>% 
+# write.csv2(duplicates.coding, file="../results_not_on_git/training20200814_duplicates.csv", row.names=F)
+duplicates.corrections <- read.csv("../results_not_on_git/training_posts20200814_duplicates-checked.csv", stringsAsFactors = F) %>% 
   #keep only 1 instance of each
   group_by(Contents) %>% 
   slice(1) %>% 
