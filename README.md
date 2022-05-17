@@ -3,10 +3,7 @@ Project classifying tweets about suicide into different classes relevant for med
 
 The datasets in this repository do not include the text of tweets, in order to protect sensitive user data. If your require the text of tweets, there are 2 options:  
 
-Option a: Rehydrate the IDs via the Twitter API to get all tweets that have not been deleted by their authors in the mean time. This is clearly the preferred option, and aligns with the Twitter Developer Agreement. 
-
-Option b: We will only share data incuding tweet texts under specific conditions: We share the dataset with non-profit organizations, and for projects that clearly benefit the data subjects or have a clear scientific purpose that advances the common interest. In this case, you can contact me at metzler@csh.ac.at to get the datasets including tweet text. Please explain your use case in detail to help us make a decision. 
-
+Rehydrate the IDs via the Twitter API to get all tweets that have not been deleted or set to private by their authors in the mean time. 
 
 All code for training the machine learning models is available at: https://github.com/HubertBaginski/TwitterSuicideML. 
 
@@ -45,7 +42,7 @@ All code for training the machine learning models is available at: https://githu
 
 
 | Detailed category | n | Main category | About suicide | 
-| --- |---|---|--- |
+| --- |---|---|---|
 | Suicidal ideation & attempts | 284 | Suicidal ideation & attempts| 1 |
 | Coping  | 205 | Coping | 1 |
 | Awareness  | 314 | Awareness |1 |
