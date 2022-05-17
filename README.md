@@ -45,7 +45,7 @@ All code for training the machine learning models is available at: https://githu
 
 
 | Detailed category | n | Main category for ML training |
-| --- |---|
+| --- |---|---|
 | Suicidal ideation & attempts | 284 | Suicidal ideation & attempts| 
 | Coping  | 205 | Coping |
 | Awareness  | 314 | Awareness |
