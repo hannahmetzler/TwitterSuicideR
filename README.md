@@ -44,20 +44,20 @@ All code for training the machine learning models is available at: https://githu
 
 
 
-| Detailed category | n | Main category for ML training |
-| --- |---|---|
-| Suicidal ideation & attempts | 284 | Suicidal ideation & attempts| 
-| Coping  | 205 | Coping |
-| Awareness  | 314 | Awareness |
-| Prevention  | 457 | Prevention |
-| Suicide case | 514 | Suicide case |
-| News suicidal ideation  | 68 | Irrelevant |
-| News coping  | 27 | Irrelevant |
-| Bereaved negative | 34 | Irrelevant |
-| Bereaved coping | 34 | Irrelevant |
-| Live saved | 13 | Irrelevant |
-| Suicide other | 440 | Irrelevant |
-| Off-topic | 812 | Irrelevant |
+| Detailed category | n | Main category | About suicide | 
+| --- |---|---|--- |
+| Suicidal ideation & attempts | 284 | Suicidal ideation & attempts| 1 |
+| Coping  | 205 | Coping | 1 |
+| Awareness  | 314 | Awareness |1 |
+| Prevention  | 457 | Prevention |1 |
+| Suicide case | 514 | Suicide case |1 |
+| News suicidal ideation  | 68 | Irrelevant |1 |
+| News coping  | 27 | Irrelevant |1 |
+| Bereaved negative | 34 | Irrelevant |1 |
+| Bereaved coping | 34 | Irrelevant |1 |
+| Live saved | 13 | Irrelevant |1 |
+| Suicide other | 440 | Irrelevant |1 |
+| Off-topic | 812 | Irrelevant |0|
 
 
 
