@@ -40,6 +40,25 @@ All code for training the machine learning models is available at: https://githu
 - about_suicide: tweet is about actual suicide = 1, not about actual suicide = 0. All tweets except the off-topic category are about actual suicide. 
 
 
+**Number of tweets per category in the dataset**
+
+| Category | n |
+| --- |---|
+| Suicidal ideation & attempts | 284 |
+| Coping  | 205 |
+| Awareness  | 314 |
+| Prevention  | 457 |
+| Suicide case 514 |
+| News suicidal ideation  | 68 |
+| News coping  | 27 |
+| Bereaved negative | 34 |
+Bereaved coping | 34 |
+Live saved | 13 |
+| Suicide other | 440 |
+| Off-topic | 812 |
+
+
+
 ### Scripts that CAN be run with the datasets available in the repository
 - 01a
 - 04 the confusion matrices can be reproduced, but text of tweets cannot be looked at, with the datasets in this repository
