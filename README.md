@@ -42,20 +42,22 @@ All code for training the machine learning models is available at: https://githu
 
 **Number of tweets per category in the dataset**
 
-| Category | n |
+
+
+| Detailed category | n | Main category for ML training |
 | --- |---|
-| Suicidal ideation & attempts | 284 |
-| Coping  | 205 |
-| Awareness  | 314 |
-| Prevention  | 457 |
-| Suicide case 514 |
-| News suicidal ideation  | 68 |
-| News coping  | 27 |
-| Bereaved negative | 34 |
-Bereaved coping | 34 |
-Live saved | 13 |
-| Suicide other | 440 |
-| Off-topic | 812 |
+| Suicidal ideation & attempts | 284 | Suicidal ideation & attempts| 
+| Coping  | 205 | Coping |
+| Awareness  | 314 | Awareness |
+| Prevention  | 457 | Prevention |
+| Suicide case | 514 | Suicide case |
+| News suicidal ideation  | 68 | Irrelevant |
+| News coping  | 27 | Irrelevant |
+| Bereaved negative | 34 | Irrelevant |
+| Bereaved coping | 34 | Irrelevant |
+| Live saved | 13 | Irrelevant |
+| Suicide other | 440 | Irrelevant |
+| Off-topic | 812 | Irrelevant |
 
 
 
