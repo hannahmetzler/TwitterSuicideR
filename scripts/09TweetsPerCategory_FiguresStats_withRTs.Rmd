@@ -30,7 +30,7 @@ library(stringr)
 ```{r data, include=FALSE}
 #load data (origin: scripts folder, where this .Rmd file is)
 load("../data_tweet_volumes/Suicide_tweets_daily_volume_per_maincategory_withRTs.R")
-# load("../data_tweet_volumes/Suicide_tweets_daily_volume_aboutsuicide.R")
+load("../data_tweet_volumes/Suicide_tweets_daily_volume_aboutsuicide_withRTs.R")
 
 #or source script (but this takes a couple of minutes)
 # source('06BuildpredictionTimelineDataset.R')
@@ -132,7 +132,7 @@ dcatperday %>%
 ```{r}
 prop.pred.grand = as.data.frame(
   dcatperday %>%
-    filter(year %in% c(2016, 2017, 2018)) %>% 
+    filter(year %in% c(2016, 2017, 2018)) %>%  # when uncommenting this line, you get the percentages reported in the first version of the preprint. It wrongly included the earlier and later years. 
     group_by(prediction) %>%
     summarise (n = sum(ntweets)) %>%
     mutate(freq = round(n/ sum(n)*100,2)))
@@ -170,6 +170,38 @@ ggplot(prop.pred.grand, aes(x=prediction, y = freq, fill=prediction)) + #dataset
   theme(axis.text.x = element_text(angle = 45, hjust=1), legend.position="none", text=element_text(size=s))
 ```
 Not adjusted by model recall
+
+### Percentage about actual suicide (2016-2018)
+
+```{r}
+prop.pred.grand = as.data.frame(
+  dsuiperday %>%
+    filter(year %in% c(2016, 2017, 2018)) %>%  # when uncommenting this line, you get the percentages reported in the first version of the preprint. It wrongly included the earlier and later years. 
+    group_by(about_suicide_prediction) %>%
+    summarise (n = sum(ntweets)) %>%
+    mutate(freq = round(n/ sum(n)*100,2)))
+
+#CI
+binomci <- function(prop.pred.grand){
+  for (i in seq(1:nrow(prop.pred.grand))){
+    ci =with(prop.pred.grand, binom.test(x = n[i], n =sum(n)))$conf.int
+    prop.pred.grand$cilow[i] = ci[1]
+    prop.pred.grand$cihigh[i] = ci[2]
+  }
+ return(prop.pred.grand)
+}
+prop.pred.grand = binomci(prop.pred.grand)
+
+#adjust by the recall of the model: divide by the recall (because I want to increase the number if the recall is low)
+prop.pred.grand$recall_bert = c(0.95, NA)
+prop.pred.grand = prop.pred.grand %>% 
+  mutate(n_adjusted = n/recall_bert) %>% 
+  mutate(freq_adjusted = round(n_adjusted/sum(prop.pred.grand$n)*100,2))
+  #correct n for category not about suicide (because dividing by recall does not work there)
+prop.pred.grand[prop.pred.grand$about_suicide_prediction=="no", "freq_adjusted"] = 100-sum(prop.pred.grand$freq_adjusted, na.rm = T)
+# write.csv(file="../results/estimated_freq_per_category_retweet_dataset1.csv", prop.pred.grand)
+prop.pred.grand
+```
 
 ### Standard deviation, min and max across daily proportions per category
 
