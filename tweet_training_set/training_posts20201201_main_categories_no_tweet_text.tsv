@@ -3179,25 +3179,25 @@ Tue Aug 16 13:32:36 +0000 2016	765541773271703552	basefrequency		0	1	3	werther	N
 Thu May 23 00:11:36 +0000 2019	1131351937448849408	basefrequency		0	1	3	werther	NA	werther	1
 Fri Sep 05 23:45:23 +0000 2014	508038214754766848	basefrequency		0	1	3	werther	NA	werther	1
 Mon Mar 17 19:20:14 +0000 2014	445640771639984128	basefrequency		0	1	3	werther	NA	werther	1
-Wed Jun 12 22:43:00 +0000 2013	344947974209687553	wordcloudterms		0	2	1	coping1	NA	coping	1
-Fri Dec 21 03:35:40 +0000 2018	1075957950148165632	wordcloudterms		0	2	2	bereaved_coping	NA	irrelevant	1
-Thu Dec 03 16:54:07 +0000 2015	672458804076912640	wordcloudterms		0	2	2	bereaved_coping	NA	irrelevant	1
-Mon Jan 07 04:08:11 +0000 2019	1082126729513062406	wordcloudterms		0	1	2	bereaved_negative	werther	irrelevant	1
-Tue Aug 07 18:27:42 +0000 2018	1026897687675920387	wordcloudterms		0	2	2	bereaved_coping	NA	irrelevant	1
-Sun Jan 13 04:57:25 +0000 2013	290321629756665857	wordcloudterms		0	1	2	bereaved_negative	werther	irrelevant	1
-Sat Jun 09 11:01:49 +0000 2018	1005404593755312128	wordcloudterms		0	1	1	suicidality1	NA	suicidality	1
-Fri Dec 20 23:19:33 +0000 2019	1208165067004489728	wordcloudterms		0	2	1	coping1	NA	coping	1
-Thu Jul 11 13:28:23 +0000 2019	1149309461082849284	wordcloudterms		0	2	1	coping1	NA	coping	1
-Thu Dec 28 00:51:34 +0000 2017	946181799939624962	wordcloudterms	pastsuicidality	0	2	1	coping1	NA	coping	1
-Thu Sep 05 16:48:15 +0000 2019	1169653480358862848	wordcloudterms		0	1	1	suicidality1	NA	suicidality	1
-Fri Dec 20 19:51:49 +0000 2013	4.14120976004035E+017	wordcloudterms		0	1	2	bereaved_negative	werther	irrelevant	1
-Thu Jan 09 17:52:56 +0000 2020	1.2153306283563E+018	wordcloudterms		0	2	2	bereaved_coping	NA	irrelevant	1
-Thu Mar 27 06:04:46 +0000 2014	449064465191825408	wordcloudterms		0	1	2	bereaved_negative	werther	irrelevant	1
-Tue Mar 24 23:09:06 +0000 2020	1242589284944707584	wordcloudterms		0	1	2	bereaved_negative		irrelevant	1
-Tue Jul 02 14:43:41 +0000 2019	1146066919226654726	wordcloudterms		0	2	1	coping1	NA	coping	1
-Sun Mar 29 11:20:28 +0000 2020	1244222891530637313	wordcloudterms		0	2	1	coping1	NA	coping	1
-Mon Feb 27 19:06:20 +0000 2017	836291393144369152	wordcloudterms		0	1	1	suicidality1	NA	suicidality	1
-Sun Aug 26 22:09:38 +0000 2018	1033838909778587648	wordcloudterms		0	1	1	suicidality1	NA	suicidality	1
-Sat Dec 09 15:32:49 +0000 2017	939518202085888001	wordcloudterms		0	2	1	coping1	NA	coping	1
-Thu Nov 13 00:14:06 +0000 2014	532687812701995009	wordcloudterms		0	1	1	suicidality1	NA	suicidality	1
-Sat Jun 11 16:41:35 +0000 2016	741671731937443840	wordcloudterms		0	2	1	coping1	NA	coping	1
+Wed Jun 12 22:43:00 +0000 2013	344947974209687553	intial_training_set_coded_on_CH		0	2	1	coping1	NA	coping	1
+Fri Dec 21 03:35:40 +0000 2018	1075957950148165632	intial_training_set_coded_on_CH		0	2	2	bereaved_coping	NA	irrelevant	1
+Thu Dec 03 16:54:07 +0000 2015	672458804076912640	intial_training_set_coded_on_CH		0	2	2	bereaved_coping	NA	irrelevant	1
+Mon Jan 07 04:08:11 +0000 2019	1082126729513062406	intial_training_set_coded_on_CH		0	1	2	bereaved_negative	werther	irrelevant	1
+Tue Aug 07 18:27:42 +0000 2018	1026897687675920387	intial_training_set_coded_on_CH		0	2	2	bereaved_coping	NA	irrelevant	1
+Sun Jan 13 04:57:25 +0000 2013	290321629756665857	intial_training_set_coded_on_CH		0	1	2	bereaved_negative	werther	irrelevant	1
+Sat Jun 09 11:01:49 +0000 2018	1005404593755312128	intial_training_set_coded_on_CH		0	1	1	suicidality1	NA	suicidality	1
+Fri Dec 20 23:19:33 +0000 2019	1208165067004489728	intial_training_set_coded_on_CH		0	2	1	coping1	NA	coping	1
+Thu Jul 11 13:28:23 +0000 2019	1149309461082849284	intial_training_set_coded_on_CH		0	2	1	coping1	NA	coping	1
+Thu Dec 28 00:51:34 +0000 2017	946181799939624962	intial_training_set_coded_on_CH	pastsuicidality	0	2	1	coping1	NA	coping	1
+Thu Sep 05 16:48:15 +0000 2019	1169653480358862848	intial_training_set_coded_on_CH		0	1	1	suicidality1	NA	suicidality	1
+Fri Dec 20 19:51:49 +0000 2013	4.14120976004035E+017	intial_training_set_coded_on_CH		0	1	2	bereaved_negative	werther	irrelevant	1
+Thu Jan 09 17:52:56 +0000 2020	1.2153306283563E+018	intial_training_set_coded_on_CH		0	2	2	bereaved_coping	NA	irrelevant	1
+Thu Mar 27 06:04:46 +0000 2014	449064465191825408	intial_training_set_coded_on_CH		0	1	2	bereaved_negative	werther	irrelevant	1
+Tue Mar 24 23:09:06 +0000 2020	1242589284944707584	intial_training_set_coded_on_CH		0	1	2	bereaved_negative		irrelevant	1
+Tue Jul 02 14:43:41 +0000 2019	1146066919226654726	intial_training_set_coded_on_CH		0	2	1	coping1	NA	coping	1
+Sun Mar 29 11:20:28 +0000 2020	1244222891530637313	intial_training_set_coded_on_CH		0	2	1	coping1	NA	coping	1
+Mon Feb 27 19:06:20 +0000 2017	836291393144369152	intial_training_set_coded_on_CH		0	1	1	suicidality1	NA	suicidality	1
+Sun Aug 26 22:09:38 +0000 2018	1033838909778587648	intial_training_set_coded_on_CH		0	1	1	suicidality1	NA	suicidality	1
+Sat Dec 09 15:32:49 +0000 2017	939518202085888001	intial_training_set_coded_on_CH		0	2	1	coping1	NA	coping	1
+Thu Nov 13 00:14:06 +0000 2014	532687812701995009	intial_training_set_coded_on_CH		0	1	1	suicidality1	NA	suicidality	1
+Sat Jun 11 16:41:35 +0000 2016	741671731937443840	intial_training_set_coded_on_CH		0	2	1	coping1	NA	coping	1
