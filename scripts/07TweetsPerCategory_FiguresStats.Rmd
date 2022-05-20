@@ -1,5 +1,5 @@
 ---
-title: "Tweets per Category in the ML predictions dataset (BERT)"
+title: "Tweets per Category in the full dataset (inital pool) using ML predictions (BERT)"
 author: "Hannah Metzler"
 date: "3/16/2021"
 output: 
@@ -52,7 +52,7 @@ We initially downloaded tweets from crimson hexagon on April 15th 2020, includin
     AND NOT ("suicide squad" OR suicidechrist OR suicidegirl* OR suicideboy* OR suicideleopard OR suicidexjockey* OR "suicidal grind" OR bomber OR squad OR epstein OR Trump OR clinton* OR Hillary OR Biden OR sanders OR “political suicide”) 
     AND NOT ("RT" OR "MT")
 
-We rehydrated these tweets a first time in April 2020, the resulting dataset included around 13.428 million tweets, of which only 9.584 million had unique ids. The machine learning models were trained on a random sample of manually annotated tweets from this sample. To get the number of retweets, we rehydrated a second time on March 14th 2021, which produced a sample of 8.892 million unique tweets. We then added the number of retweets to each tweet, to count the total number of times it was posted on Twitter. (Side note: the retweets are only on that date, but most retweets on Twitter happen with a couple of hours.)
+We rehydrated these tweets a first time in April 2020, the resulting dataset included around 13.428 million tweets, of which only 9.584 million had unique ids. The machine learning models were trained on a random sample of manually annotated tweets from this sample. To get the number of retweets, we rehydrated a second time on March 14th 2021, which produced a sample of 8.892 million unique tweets. We then added the number of retweets to each tweet, to count the total number of times it was posted on Twitter. (Side note: the retweets are only on that date, but most retweets on Twitter happen with a couple of hours.) This dataset is not described in the paper. In the paper, we describe instead a newly downloaded dataset with the same keywords, but including retweets, to get a more precise estimate of the number of retweets. 
 
 Predictions were made with the BERT base model, fine-tuned (more epochs, smaller learning rate, check with Hubert for details). 
 
