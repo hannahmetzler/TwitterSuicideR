@@ -114,7 +114,7 @@ average
 byclass
 ```
 
-## XLNet
+## About suicide, XLNet
 
 ```{r}
 labels <- c("aboutsuicide", "notsuicide")
@@ -133,7 +133,7 @@ average
 byclass
 ```
 
-## TFIDF
+## About suicide, TFIDF
 
 ```{r}
 labels <- c("aboutsuicide", "notsuicide")
@@ -225,14 +225,10 @@ cis_model = function(df, prf){
 }
 ```
 
-### Majority classifier: 
-
-* precision (and F1) per class not possible to calculate, because true positives 0 for all classes except irrelevant, and division by 0 impossible
-
-### TFIDF
-
 ```{r}
+#calculate all confidence intervals
 
+#TFIDF
 test_6cat = order6cat(read.csv('../results/predictions_TFIDF_6_classes_test_set.csv'))
 #per class metrics for TFIDF still need to be calculated (not in Hubert's results tables)
 cfm = confusionMatrix(test_6cat$predicted_label, test_6cat$true_label)
@@ -276,6 +272,10 @@ perClass = list("tfidf" = tfidf$perClass, "bert"=bert$perClass, "xlnet"=xlnet$pe
 save(perClass, file='../results/intraclass_performance_6_classes.Rdata')
 
 ```
+
+### Majority classifier: 
+
+* precision (and F1) per class not possible to calculate, because true positives 0 for all classes except irrelevant, and division by 0 impossible
 
 ### TFIDF
 
