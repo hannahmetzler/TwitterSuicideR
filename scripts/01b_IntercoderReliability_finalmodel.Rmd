@@ -47,7 +47,8 @@ db4 <- read.csv('../reliability_datasets/round4_150x5_suicide_withpredictions_BE
 # select(-predictionBERT1) #these are predictions by a previous, less good version of our model
 
 
-#Hannah's labels
+#Hannah's labels ####
+
 dh4 <- read.csv('../reliability_datasets/round4_150x5_suicide_Hannah_complete_IDsrepaired.csv', stringsAsFactors = T,  colClasses = "character")  %>% 
   #delete text columns, messed up by excel, use text from BERT predictions dataset. #delete text columns split into multiple columns in Hannah file
   select(-c(text, X, X.1, X.2, X.3, X.4, X.5, X.6)) %>% 
@@ -64,10 +65,11 @@ dh4 <- read.csv('../reliability_datasets/round4_150x5_suicide_Hannah_complete_ID
                                 bereaved_negative = "irrelevant", bereaved_coping = "irrelevant", 
                                 life_saved = "irrelevant", suicide_other = "irrelevant", "off-topic" = "irrelevant", 
                                 coping1 = "coping", coping3 = "coping", suicidality1 = "suicidality", suicidality3 = "suicidality"))
-```
 
 
-```{r, preprocess data Thomas}
+# preprocess data Thomas ####
+
+
 #Thomas' labels
 dt4 <- read.csv('../reliability_datasets/round4_150x5_suicide_Thomas_complete_IDsrepaired.csv', stringsAsFactors = F, sep = '\t',  colClasses = "character") %>% 
   select(-X1.problem.1) %>% 
@@ -163,10 +165,9 @@ mutate(Suicidality.1 = recode(Suicidality.1, x="suicidality1"),
   droplevels() #delete the empty levels
 # # #here we had 2 duplicates, because Thomas' file contained duplicate seriousvsnot labels for 1 tweet. 613152024935460864. 1 was deleted. 
 # janitor::get_dupes(dt4, id)
-```
 
+#### join dataframes ####
 
-```{r, join dataframes}
 #join Hannah and BERT
 d4 = db4 %>% 
   inner_join(dh4, suffix = c(".bert", ".hannah"), by = "id") %>% 
@@ -266,7 +267,8 @@ xtabs(~main_category, dt4)
 ### 6 categories (including irrelevant)
 
 ```{r}
-caret::confusionMatrix(d4$main_category.BERT, d4$main_category.hannah)
+caret::confusionMatrix(d4$main_category.BERT, d4$main_category.hannah)$table
+# write.csv(caret::confusionMatrix(d4$main_category.BERT, d4$main_category.hannah)$table, file= "../results/confusionMatrix_coder1_BERT_reliablity_dataset.csv", row.names=F)
 round(DescTools::CohenKappa(d4$main_category.BERT, d4$main_category.hannah, conf.level = 0.95), 2)
 ```
 
@@ -295,6 +297,7 @@ d4 %>%
 
 ```{r}
 confusionMatrix(d4$main_category.BERT, d4$main_category.thomas)
+write.csv(caret::confusionMatrix(d4$main_category.BERT, d4$main_category.thomas)$table, file= "../results/confusionMatrix_coder2_BERT_reliablity_dataset.csv", row.names=F)
 round(DescTools::CohenKappa(d4$main_category.BERT, d4$main_category.thomas, conf.level = 0.95), 2)
 ```
 
@@ -346,10 +349,10 @@ byclass
 ```
 
 ```{r, save dataset with predictions and human labels}
-save(d4, file  = '../reliability_datasets/round4_150x5_suicide_human&model_BERT_finetuned.R')
-d4_notext = d4 %>% 
-  select(-c(text, time, predictionBERT1))
-save(d4_notext, file  = '../reliability_datasets/round4_150x5_suicide_human&model_BERT_finetuned_notext.R')
+# save(d4, file  = '../reliability_datasets/round4_150x5_suicide_human&model_BERT_finetuned.RData')
+# d4_notext = d4 %>% 
+#   select(-c(text, time, predictionBERT1))
+# save(d4_notext, file  = '../reliability_datasets/round4_150x5_suicide_human&model_BERT_finetuned_notext.RData')
 ```
 
 
