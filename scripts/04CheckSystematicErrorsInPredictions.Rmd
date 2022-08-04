@@ -47,7 +47,7 @@ d = d4 %>%
 
 ## Confusion Matrix
 
-```{r, fig.width = 10, fig.height=5}
+```{r, fig.width = 4, fig.height=2}
 #order of categories for plots
 ord_mcategory= rev(c( "Suicidality", "Coping", "Awareness", "Prevention", "Werther", "Irrelevant"))
 
@@ -61,20 +61,20 @@ main_confusion_matrix = as.data.frame(round(
           Reference = recode(Reference, "Suicidality" = "Suicidal", "Werther" = "Suicide cases"))
 
 # fontsize = 5 # for png figure for JMIR (max width = 1200 pixels)
-fontsize = 14
+fontsize = 5
 
 plotpercent = ggplot(main_confusion_matrix, aes(Prediction, Reference, fill = Freq)) +
   geom_tile() +
-  geom_text(aes(label = scales::percent(Freq))) + #include only for png figure , size=fontsize-3
+  geom_text(aes(label = scales::percent(Freq)), size =fontsize-3) + #include only for png figure , size=fontsize-3
   scale_fill_gradient(low = "white", high = "#3575b5") +
   labs(x = "Prediction", y = "True Label", fill = "Percent") + theme_bw()+
-  theme(plot.title = element_text(size = fontsize+11, hjust = 0.5, 
+  theme(plot.title = element_text(size = fontsize, hjust = 0.5,
                                   margin = margin(20, 0, 20, 0)),
-        legend.title = element_text(size = fontsize, margin = margin(0, 20, 10, 0)),
-        axis.title.x = element_text( size = fontsize+4), #margin = margin(20, 20, 20, 20),
-        axis.title.y = element_text(size = fontsize+4), #margin = margin(0, 20, 0, 10), 
-        axis.text=element_text(size=fontsize), 
-        axis.text.x = element_text(angle = 45,  hjust=1), 
+        legend.title = element_text(size = fontsize), #margin = margin(0, 20, 10, 0)),
+        axis.title.x = element_text( size = fontsize), #margin = margin(20, 20, 20, 20),
+        axis.title.y = element_text(size = fontsize), #margin = margin(0, 20, 0, 10),
+        axis.text=element_text(size=fontsize),
+        axis.text.x = element_text(angle = 45,  hjust=1),
         legend.position = "none")
 #count of tweets
 main_confusion_matrix_count = as.data.frame(round(
@@ -87,21 +87,30 @@ main_confusion_matrix_count = as.data.frame(round(
           Reference = recode(Reference, "Suicidality" = "Suicidal", "Werther" = "Suicide cases"))
 plot_count = ggplot(main_confusion_matrix_count, aes(Prediction, Reference, fill = Freq)) +
   geom_tile() +
-  geom_text(aes(label = (Freq))) + #include only for png figure , size=fontsize-3
+  geom_text(aes(label = (Freq)), size = fontsize-3) + #include only for png figure , size=fontsize-3
   scale_fill_gradient(low = "white", high = "#3575b5") +
   labs(x = "Prediction", y = "", fill = "Percent") + theme_bw()+
-  theme(plot.title = element_text(size = fontsize+11, hjust = 0.5, #+11
+  theme(plot.title = element_text(size = fontsize, hjust = 0.5, #+11
                                   margin = margin(20, 0, 20, 0)),
         legend.title = element_text(size = fontsize, margin = margin(0, 20, 10, 0)),
-        axis.title.x = element_text( size = fontsize+4), #margin = margin(20, 20, 20, 20),
-        axis.title.y = element_text(size = fontsize+4), #margin = margin(0, 20, 0, 10), 
+        axis.title.x = element_text( size = fontsize), #margin = margin(20, 20, 20, 20),
+        axis.title.y = element_text(size = fontsize), #margin = margin(0, 20, 0, 10), 
         axis.text=element_text(size=fontsize), 
         axis.text.x = element_text(angle = 45,  hjust=1), 
         legend.position = "none")
-ggarrange(plotpercent, plot_count,  common.legend = TRUE, legend = "none", labels = c("a", "b"), font.label = list(size = 16))
-ggsave('../figures/Main_category_confusion_matrix.pdf', width=10, height=5, dpi=300)
-# ggsave('../figures/Figure2.png', width=4, height=2)
+ggarrange(plotpercent, plot_count,  common.legend = TRUE, legend = "none", labels = c("A", "B"), font.label = list(size = 8))
+# ggsave('../figures/Main_category_confusion_matrix.png', width=4, height=1.8, dpi=300, units = 'in', device = 'png')
+
 ```
+
+Total number per true category: 
+
+```{r}
+d %>%
+  group_by(true_label) %>% 
+  summarise(n=n())
+```
+
 
 In general, misclassifications as irrelevant are less severe than other confusions, because we prioritize precision (correct predictions for relevant classes) over recall (detecting all true examples). There are two major cases of misclassification between relevant categories: coping tweets get misclassified as suicidal and vice versa, and awareness tweets get misclassified as suicide cases or prevention tweets. The suicidal vs. coping confusion results from.
 
@@ -145,15 +154,35 @@ p %>%
 
 ## Check Suicidality misclassifications to see how large the confusion with non serious tweets is
 
-How many predicted labels per category were labelled as not serious by Coder 1? They should all belong to the category irrelevant, but are quite often assigned to the suicidal category. 
+This section is reported in the paper. How many predicted labels per category were labelled as not serious by Coder 1? They should all belong to the category irrelevant, but are quite often assigned to the suicidal category. 
+
+How are non-serious tweets distributed across the categories? Mostly irrelevant, but a lot of suicidality. 
 
 ```{r}
 round(prop.table(xtabs(~notserious_unclear.hannah+prediction, d), margin=1),2)
 ```
+
 How many tweets per predicted category are not serious or unclear? 
 
 ```{r}
 round(prop.table(xtabs(~notserious_unclear.hannah+prediction, d), margin=2),2)
+```
+Absolute values
+```{r}
+xtabs(~notserious_unclear.hannah+prediction, d)
+```
+
+Total n per predicted category
+```{r}
+as.data.frame(d %>% 
+  group_by(prediction) %>% 
+  summarise(n=n()))
+```
+Total n serious vs. not serious
+```{r}
+as.data.frame(d %>% 
+  group_by(notserious_unclear.hannah) %>% 
+  summarise(n=n()))
 ```
 
 Of tweets with the predicted label suicidality, look at those that are not serious or unclear :
@@ -444,6 +473,7 @@ p %>%
 * 6 Model wrong: the rest are personal opinions
 
 ## Check Suicide Other misclassification as Suicidality
+
 
 ```{r, tab.width=0.7}
 p = as.data.frame(x%>% 

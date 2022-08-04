@@ -171,235 +171,6 @@ ggplot(prop.pred.grand, aes(x=prediction, y = freq, fill=prediction)) + #dataset
 ```
 Not adjusted by model recall
 
-### Percentage about actual suicide (2016-2018)
-
-```{r}
-prop.pred.grand = as.data.frame(
-  dsuiperday %>%
-    filter(year %in% c(2016, 2017, 2018)) %>%  # when uncommenting this line, you get the percentages reported in the first version of the preprint. It wrongly included the earlier and later years. 
-    group_by(about_suicide_prediction) %>%
-    summarise (n = sum(ntweets)) %>%
-    mutate(freq = round(n/ sum(n)*100,2)))
-
-#CI
-binomci <- function(prop.pred.grand){
-  for (i in seq(1:nrow(prop.pred.grand))){
-    ci =with(prop.pred.grand, binom.test(x = n[i], n =sum(n)))$conf.int
-    prop.pred.grand$cilow[i] = ci[1]
-    prop.pred.grand$cihigh[i] = ci[2]
-  }
- return(prop.pred.grand)
-}
-prop.pred.grand = binomci(prop.pred.grand)
-
-#adjust by the recall of the model: divide by the recall (because I want to increase the number if the recall is low)
-prop.pred.grand$recall_bert = c(0.95, NA)
-prop.pred.grand = prop.pred.grand %>% 
-  mutate(n_adjusted = n/recall_bert) %>% 
-  mutate(freq_adjusted = round(n_adjusted/sum(prop.pred.grand$n)*100,2))
-  #correct n for category not about suicide (because dividing by recall does not work there)
-prop.pred.grand[prop.pred.grand$about_suicide_prediction=="no", "freq_adjusted"] = 100-sum(prop.pred.grand$freq_adjusted, na.rm = T)
-# write.csv(file="../results/estimated_freq_per_category_retweet_dataset1.csv", prop.pred.grand)
-prop.pred.grand
-```
-
-### Standard deviation, min and max across daily proportions per category
-
-```{r}
-prop.pred.daily = dcatperday %>%
-  filter(year %in% c(2016, 2017, 2018)) %>% 
-  #collapse across tweet type (original vs retweet)
-  group_by(date, prediction) %>% 
-  mutate(ncat = sum(ntweets)) %>% 
-  slice(1) %>% #drop 2nd line
-  group_by(prediction) %>% 
-  
-  #daily percentage
-  mutate(freq = ncat/ndaytotal*100) %>% 
-  #mean and sd across all days
-  group_by(prediction) %>% 
-  summarise(mean = round(mean(freq),2),
-            sd = round(sd(freq),2), 
-            min = round(min(freq), 2), 
-            max = round(max(freq), 2)) %>% 
-  #adjust for model recall
-  mutate(mean_adjusted = round(mean/prop.pred.grand$recall_bert, 2))
-#correct n for category irrelevant (because dividing by recall does not work there)
-prop.pred.daily[prop.pred.daily$prediction=="irrelevant", "mean_adjusted"] = 100-sum(prop.pred.daily$mean_adjusted, na.rm = T)
-prop.pred.daily
-#   write.csv(file="../results/estimated_freq_per_category_retweet_dataset_sd_min_max.csv", prop.pred.daily)
-
-ggplot(prop.pred.daily, aes(x=prediction, y = mean, fill=prediction)) + #dataset and variables to plot
-  geom_bar(stat="identity")+
-  # geom_errorbar(aes(x=prediction, ymin = mean_adjusted-cilow, ymax=mean_adjusted+cihigh), size=1, width=0.5)+
-  ggtitle("Average across daily percentages")+
-  labs(y="Proportion", x="") + #axes and title labels
-  scale_fill_manual(values=c("#332288", "#88CCEE", "#44AA99", "#117733", '#999933', '#DDCC77', '#CC6677', "#882255", "#332288", "#88CCEE", "#44AA99", "#AA4499", "#999999",  "#444444"))+
-  theme_bw() +  
-  theme(axis.text.x = element_text(angle = 45, hjust=1), legend.position="none", text=element_text(size=s))
-
-```
-
-
-
-## Total number of tweets per category by year
-
-* Irrelevant increase over the years may simply reflect increase in tweets overall. Irrelevant includes tweets about suicide not belonging in any other category, and off-topic tweet (metaphors, jokes, euthansia, bombings,...). 
-* the total volume (sum of all categories) is shown in black
-
-```{r}
-dcatperyear = dcatperday %>% 
-  group_by(year, prediction) %>% 
-  summarise(ntweets = sum(ntweets), 
-            pr = sum(ntweets)/sum(ndaytotal)) %>% 
-  group_by(year) %>% 
-       mutate(ntotal = sum(ntweets)) %>% 
-  #2021 is not a full year 
-  filter(year!="2021") %>% 
-  #million tweets
-  mutate(mio_tweets = ntweets/1000000,
-         mio_total = ntotal/1000000)
-
-#plot per year
-ggplot(data=dcatperyear, aes(x=year, y=ntweets))+
-  geom_point(aes(colour = prediction))+ geom_line(aes(colour = prediction))+
-  geom_point(aes(x=year, y=ntotal))+  geom_line(aes(x=year, y=ntotal))+
-  #show total tweets with suicide terms per year (sum of all categories)
-  # geom_line(data=dtotperyear, aes(x=year, y=ndaytotal))+
-  theme_bw()+
-  scale_colour_manual(values=mycols)+
-  scale_x_continuous(n.breaks=7)
-```
-
-```{r}
-ggplot(data=filter(dcatperyear, prediction!="irrelevant"), aes(x=year, y=mio_tweets, colour = prediction))+
-  geom_point()+ geom_line()+
-  theme_bw()+
-  scale_colour_manual(values=mycols)+
-  scale_x_continuous(n.breaks=7)+
-  ggtitle(" Same plot without the category Irrelevant")
-  
-```
-
-* also shows the general increase for Werther tweets. 
-* the increase exists since 2017, but is much smaller, for coping and suicidality tweets
-
-The percentage of tweets per category decreased for irrelevant, and increased for the other categories. 
-
-```{r}
-#plot per year
-ggplot(data=dcatperyear, aes(x=year, y=pr))+
-  geom_point(aes(colour = prediction))+ geom_line(aes(colour = prediction))+
-  theme_bw()+
-  scale_colour_manual(values=mycols)+
-  scale_x_continuous(n.breaks=7)+ggtitle("Percentage of tweets per category in total number of tweets")
-```
-
-
-# Monthly pattern? Total number of tweets per month (averaged across 7 years)
-
-```{r}
-dcatpermonth = dcatperday %>% 
-  filter(date < as.Date("2020-04-01")) %>% #no full month of data
-  group_by(month, prediction) %>% 
-  summarise(ntweets = sum(ntweets)) %>% 
-  #thousand tweets
-  mutate(thousand_tweets = ntweets/1000) %>% ungroup()
-#plot per month
-ggplot(data=dcatpermonth, aes(x=month, y=ntweets, colour = prediction))+
-  geom_point()+ geom_line(aes(group=prediction))+
-  theme_bw()+
-  scale_colour_manual(values=mycols)
-
-```
-
-* Open question: Are the peaks in certain categories driven by outlier months in some years, or general patterns?
-    - September: world suicide prevention day is likely a general pattern
-    - Werther/Prevention ups and downs are probably influenced by celebrity suicides in one or some of the years.
-
-# Monthly timeline across years (January 2015 to March 2020)
-
-```{r}
-#monthly timeseries
-dtsmonthly = dcatperday %>% 
-  #filter(date < as.Date("2020-04-01")) %>% #no full month of data
-  group_by(year, month, prediction) %>% 
-  summarise(ntweets = sum(ntweets)) %>% 
-  #thousand tweets
-  mutate(thousand_tweets = ntweets/1000) %>% ungroup() %>% 
-#add median per month 
-  group_by(month, prediction) %>% 
-  mutate(ntweets_median = median(ntweets))
-
-#plot per month
-ggplot(data=dtsmonthly)+
-  geom_boxplot(aes(x=month, y=ntweets, colour = prediction)) +
-  # geom_point(aes(x=month, y=ntweets, colour = prediction))+ 
-  geom_line(aes(x=month, y=ntweets_median, group=prediction, colour=prediction))+
-  theme_bw()+
-  scale_colour_manual(values=mycols)+
-  ggtitle("Boxplot per year, median as a line")
-```
-
-
-More detailed picture (without irrelevant category):
-
-```{r}
-ggplot(data=filter(dtsmonthly, prediction!="irrelevant"))+
-  geom_boxplot(aes(x=month, y=ntweets, colour = prediction)) +
-  # geom_point(aes(x=month, y=ntweets, colour = prediction))+ 
-  geom_line(aes(x=month, y=ntweets_median, group=prediction, colour=prediction))+
-  theme_bw()+
-  scale_colour_manual(values=mycols)+
-  ggtitle("Boxplot per year, median as a line (without irrelevant)")
-```
-
-
-
-```{r}
-ggplot(data=filter(dtsmonthly, prediction!="irrelevant"))+
-  # geom_violin(aes(x=month, y=ntweets, colour = prediction))+ 
-  geom_point(aes(x=month, y=ntweets, colour = prediction))+ 
-  geom_line(aes(x=month, y=ntweets_median, group=prediction, colour=prediction))+
-  facet_wrap(~prediction)+
-  theme_bw()+
-  scale_colour_manual(values=mycols)+
-  theme(axis.text.x=element_text(angle=60, hjust=1), axis.title.x=element_blank(), legend.position="none")+
-  ggtitle("One dot per year, median as a line")
-```
-
-* September prevention is systematically higher (world suicide prevention day). Maybe also slightly higher around Christmas. 
-* The Werther outlier in June could be Spade and Bourdain in 2018?
-* Awareness median also regularly higher in August, lower in June. 
-
-
-# Weekly pattern? Total number of tweets per weekday (averaged across 7 years)
-
-```{r}
-dcatperwday = dcatperday %>% 
-  group_by(weekday, prediction) %>% 
-  summarise(median_tweets = median(ntweets)) %>% 
-  #thousand tweets
-  mutate(thousand_tweets = median_tweets/1000) %>% ungroup()
-#plot per week day
-ggplot(data=dcatperwday, aes(x=weekday, y=median_tweets, colour = prediction))+
-  geom_point()+ geom_line(aes(group=prediction))+
-  theme_bw()+
-  scale_colour_manual(values=mycols)+
-  ggtitle("Median tweets per weekday")
-ggplot(data=filter(dcatperwday, prediction !="irrelevant"), aes(x=weekday, y=median_tweets, colour = prediction))+
-  geom_point()+ geom_line(aes(group=prediction))+
-  theme_bw()+
-  scale_colour_manual(values=mycols)+
-  ggtitle("Median tweets per weekday (without irrelevant category)")
-ggplot(data=filter(dcatperwday, prediction =="coping" | prediction == "suicidality"), aes(x=weekday, y=median_tweets, colour = prediction))+
-  geom_point()+ geom_line(aes(group=prediction))+
-  theme_bw()+
-  scale_colour_manual(values=mycols)+
-  ggtitle("Median tweets per weekday: suicidality and coping category)")
-```
-
-
 # Daily timeline of daily tweets per category
 
 
@@ -413,15 +184,15 @@ plot_timeseries = ggplot(data=dpaper, aes(x=date, y=percent, colour = prediction
   theme_bw()+
   scale_colour_manual(values=mycols2)+
   scale_x_date(breaks = seq(as.Date("2016-01-01"), as.Date("2019-01-01"), by="3 months"), 
-               date_labels = "%b %y", minor_breaks = "1 month", expand = c(0.01,0.01))+
+               date_labels = "%B %Y", minor_breaks = "1 month", expand = c(0.01,0.01))+
   facet_wrap(~prediction, ncol=1)+
   ylab("Percent per predicted category")+
-  theme(legend.position="none", text=element_text(size=s+5), axis.title.x=element_blank(), plot.margin = margin(rep(0.5,4), unit="cm"), 
+  theme(legend.position="none", text=element_text(size=s+5), axis.title.x=element_blank(), plot.margin = margin(rep(1,4), unit="cm"), 
         axis.text.x = element_text(angle = 45, hjust=1))+
   geom_vline(aes(xintercept=as.Date("2017-01-01")), colour = "grey", linetype=3)+
   geom_vline(aes(xintercept=as.Date("2018-01-01")), colour = "grey", linetype = 3)
 plot_timeseries
-# ggsave('../figures/Daily_timeseries_per_categoryR.pdf',  plot_timeseries, width=10, height=13, dpi=300)
+ggsave('../figures/Figure5_Daily_timeseries_per_categoryR.svg',  plot_timeseries, width=10, height=13, dpi=300)
 ```
 
 ## Selected categories: IC2S2 abstract
@@ -1137,3 +908,233 @@ dp %>%
   filter(str_detect(text, "avicii")) %>% 
   select(text)
 ```
+
+### Percentage about actual suicide (2016-2018)
+
+```{r}
+prop.pred.grand = as.data.frame(
+  dsuiperday %>%
+    filter(year %in% c(2016, 2017, 2018)) %>%  # when uncommenting this line, you get the percentages reported in the first version of the preprint. It wrongly included the earlier and later years. 
+    group_by(about_suicide_prediction) %>%
+    summarise (n = sum(ntweets)) %>%
+    mutate(freq = round(n/ sum(n)*100,2)))
+
+#CI
+binomci <- function(prop.pred.grand){
+  for (i in seq(1:nrow(prop.pred.grand))){
+    ci =with(prop.pred.grand, binom.test(x = n[i], n =sum(n)))$conf.int
+    prop.pred.grand$cilow[i] = ci[1]
+    prop.pred.grand$cihigh[i] = ci[2]
+  }
+ return(prop.pred.grand)
+}
+prop.pred.grand = binomci(prop.pred.grand)
+
+#adjust by the recall of the model: divide by the recall (because I want to increase the number if the recall is low)
+prop.pred.grand$recall_bert = c(0.95, NA)
+prop.pred.grand = prop.pred.grand %>% 
+  mutate(n_adjusted = n/recall_bert) %>% 
+  mutate(freq_adjusted = round(n_adjusted/sum(prop.pred.grand$n)*100,2))
+  #correct n for category not about suicide (because dividing by recall does not work there)
+prop.pred.grand[prop.pred.grand$about_suicide_prediction=="no", "freq_adjusted"] = 100-sum(prop.pred.grand$freq_adjusted, na.rm = T)
+# write.csv(file="../results/estimated_freq_per_category_retweet_dataset1.csv", prop.pred.grand)
+prop.pred.grand
+```
+
+### Standard deviation, min and max across daily proportions per category
+
+```{r}
+prop.pred.daily = dcatperday %>%
+  filter(year %in% c(2016, 2017, 2018)) %>% 
+  #collapse across tweet type (original vs retweet)
+  group_by(date, prediction) %>% 
+  mutate(ncat = sum(ntweets)) %>% 
+  slice(1) %>% #drop 2nd line
+  group_by(prediction) %>% 
+  
+  #daily percentage
+  mutate(freq = ncat/ndaytotal*100) %>% 
+  #mean and sd across all days
+  group_by(prediction) %>% 
+  summarise(mean = round(mean(freq),2),
+            sd = round(sd(freq),2), 
+            min = round(min(freq), 2), 
+            max = round(max(freq), 2)) %>% 
+  #adjust for model recall
+  mutate(mean_adjusted = round(mean/prop.pred.grand$recall_bert, 2))
+#correct n for category irrelevant (because dividing by recall does not work there)
+prop.pred.daily[prop.pred.daily$prediction=="irrelevant", "mean_adjusted"] = 100-sum(prop.pred.daily$mean_adjusted, na.rm = T)
+prop.pred.daily
+#   write.csv(file="../results/estimated_freq_per_category_retweet_dataset_sd_min_max.csv", prop.pred.daily)
+
+ggplot(prop.pred.daily, aes(x=prediction, y = mean, fill=prediction)) + #dataset and variables to plot
+  geom_bar(stat="identity")+
+  # geom_errorbar(aes(x=prediction, ymin = mean_adjusted-cilow, ymax=mean_adjusted+cihigh), size=1, width=0.5)+
+  ggtitle("Average across daily percentages")+
+  labs(y="Proportion", x="") + #axes and title labels
+  scale_fill_manual(values=c("#332288", "#88CCEE", "#44AA99", "#117733", '#999933', '#DDCC77', '#CC6677', "#882255", "#332288", "#88CCEE", "#44AA99", "#AA4499", "#999999",  "#444444"))+
+  theme_bw() +  
+  theme(axis.text.x = element_text(angle = 45, hjust=1), legend.position="none", text=element_text(size=s))
+
+```
+
+
+
+## Total number of tweets per category by year
+
+* Irrelevant increase over the years may simply reflect increase in tweets overall. Irrelevant includes tweets about suicide not belonging in any other category, and off-topic tweet (metaphors, jokes, euthansia, bombings,...). 
+* the total volume (sum of all categories) is shown in black
+
+```{r}
+dcatperyear = dcatperday %>% 
+  group_by(year, prediction) %>% 
+  summarise(ntweets = sum(ntweets), 
+            pr = sum(ntweets)/sum(ndaytotal)) %>% 
+  group_by(year) %>% 
+       mutate(ntotal = sum(ntweets)) %>% 
+  #2021 is not a full year 
+  filter(year!="2021") %>% 
+  #million tweets
+  mutate(mio_tweets = ntweets/1000000,
+         mio_total = ntotal/1000000)
+
+#plot per year
+ggplot(data=dcatperyear, aes(x=year, y=ntweets))+
+  geom_point(aes(colour = prediction))+ geom_line(aes(colour = prediction))+
+  geom_point(aes(x=year, y=ntotal))+  geom_line(aes(x=year, y=ntotal))+
+  #show total tweets with suicide terms per year (sum of all categories)
+  # geom_line(data=dtotperyear, aes(x=year, y=ndaytotal))+
+  theme_bw()+
+  scale_colour_manual(values=mycols)+
+  scale_x_continuous(n.breaks=7)
+```
+
+```{r}
+ggplot(data=filter(dcatperyear, prediction!="irrelevant"), aes(x=year, y=mio_tweets, colour = prediction))+
+  geom_point()+ geom_line()+
+  theme_bw()+
+  scale_colour_manual(values=mycols)+
+  scale_x_continuous(n.breaks=7)+
+  ggtitle(" Same plot without the category Irrelevant")
+  
+```
+
+* also shows the general increase for Werther tweets. 
+* the increase exists since 2017, but is much smaller, for coping and suicidality tweets
+
+The percentage of tweets per category decreased for irrelevant, and increased for the other categories. 
+
+```{r}
+#plot per year
+ggplot(data=dcatperyear, aes(x=year, y=pr))+
+  geom_point(aes(colour = prediction))+ geom_line(aes(colour = prediction))+
+  theme_bw()+
+  scale_colour_manual(values=mycols)+
+  scale_x_continuous(n.breaks=7)+ggtitle("Percentage of tweets per category in total number of tweets")
+```
+
+
+# Monthly pattern? Total number of tweets per month (averaged across 7 years)
+
+```{r}
+dcatpermonth = dcatperday %>% 
+  filter(date < as.Date("2020-04-01")) %>% #no full month of data
+  group_by(month, prediction) %>% 
+  summarise(ntweets = sum(ntweets)) %>% 
+  #thousand tweets
+  mutate(thousand_tweets = ntweets/1000) %>% ungroup()
+#plot per month
+ggplot(data=dcatpermonth, aes(x=month, y=ntweets, colour = prediction))+
+  geom_point()+ geom_line(aes(group=prediction))+
+  theme_bw()+
+  scale_colour_manual(values=mycols)
+
+```
+
+* Open question: Are the peaks in certain categories driven by outlier months in some years, or general patterns?
+    - September: world suicide prevention day is likely a general pattern
+    - Werther/Prevention ups and downs are probably influenced by celebrity suicides in one or some of the years.
+
+# Monthly timeline across years (January 2015 to March 2020)
+
+```{r}
+#monthly timeseries
+dtsmonthly = dcatperday %>% 
+  #filter(date < as.Date("2020-04-01")) %>% #no full month of data
+  group_by(year, month, prediction) %>% 
+  summarise(ntweets = sum(ntweets)) %>% 
+  #thousand tweets
+  mutate(thousand_tweets = ntweets/1000) %>% ungroup() %>% 
+#add median per month 
+  group_by(month, prediction) %>% 
+  mutate(ntweets_median = median(ntweets))
+
+#plot per month
+ggplot(data=dtsmonthly)+
+  geom_boxplot(aes(x=month, y=ntweets, colour = prediction)) +
+  # geom_point(aes(x=month, y=ntweets, colour = prediction))+ 
+  geom_line(aes(x=month, y=ntweets_median, group=prediction, colour=prediction))+
+  theme_bw()+
+  scale_colour_manual(values=mycols)+
+  ggtitle("Boxplot per year, median as a line")
+```
+
+
+More detailed picture (without irrelevant category):
+
+```{r}
+ggplot(data=filter(dtsmonthly, prediction!="irrelevant"))+
+  geom_boxplot(aes(x=month, y=ntweets, colour = prediction)) +
+  # geom_point(aes(x=month, y=ntweets, colour = prediction))+ 
+  geom_line(aes(x=month, y=ntweets_median, group=prediction, colour=prediction))+
+  theme_bw()+
+  scale_colour_manual(values=mycols)+
+  ggtitle("Boxplot per year, median as a line (without irrelevant)")
+```
+
+
+
+```{r}
+ggplot(data=filter(dtsmonthly, prediction!="irrelevant"))+
+  # geom_violin(aes(x=month, y=ntweets, colour = prediction))+ 
+  geom_point(aes(x=month, y=ntweets, colour = prediction))+ 
+  geom_line(aes(x=month, y=ntweets_median, group=prediction, colour=prediction))+
+  facet_wrap(~prediction)+
+  theme_bw()+
+  scale_colour_manual(values=mycols)+
+  theme(axis.text.x=element_text(angle=60, hjust=1), axis.title.x=element_blank(), legend.position="none")+
+  ggtitle("One dot per year, median as a line")
+```
+
+* September prevention is systematically higher (world suicide prevention day). Maybe also slightly higher around Christmas. 
+* The Werther outlier in June could be Spade and Bourdain in 2018?
+* Awareness median also regularly higher in August, lower in June. 
+
+
+# Weekly pattern? Total number of tweets per weekday (averaged across 7 years)
+
+```{r}
+dcatperwday = dcatperday %>% 
+  group_by(weekday, prediction) %>% 
+  summarise(median_tweets = median(ntweets)) %>% 
+  #thousand tweets
+  mutate(thousand_tweets = median_tweets/1000) %>% ungroup()
+#plot per week day
+ggplot(data=dcatperwday, aes(x=weekday, y=median_tweets, colour = prediction))+
+  geom_point()+ geom_line(aes(group=prediction))+
+  theme_bw()+
+  scale_colour_manual(values=mycols)+
+  ggtitle("Median tweets per weekday")
+ggplot(data=filter(dcatperwday, prediction !="irrelevant"), aes(x=weekday, y=median_tweets, colour = prediction))+
+  geom_point()+ geom_line(aes(group=prediction))+
+  theme_bw()+
+  scale_colour_manual(values=mycols)+
+  ggtitle("Median tweets per weekday (without irrelevant category)")
+ggplot(data=filter(dcatperwday, prediction =="coping" | prediction == "suicidality"), aes(x=weekday, y=median_tweets, colour = prediction))+
+  geom_point()+ geom_line(aes(group=prediction))+
+  theme_bw()+
+  scale_colour_manual(values=mycols)+
+  ggtitle("Median tweets per weekday: suicidality and coping category)")
+```
+
+
