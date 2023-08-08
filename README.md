@@ -3,9 +3,16 @@ Project classifying tweets about suicide into different classes relevant for med
 
 The datasets in this repository do not include the text of tweets, in order to protect sensitive user data. If your require the text of tweets, there are 2 options:  
 
-Rehydrate the IDs via the Twitter API to get all tweets that have not been deleted or set to private by their authors in the mean time. 
+1) Rehydrate the IDs via the Twitter API to get all tweets that have not been deleted or set to private by their authors in the mean time.
+2) Use our ML models from Huggingface to classify new tweets, and check if the labels manually based on our annotation scheme published in the supplementary information. 
 
 All code for training the machine learning models is available at: https://github.com/HubertBaginski/TwitterSuicideML. 
+
+### Machine Learning Models
+
+The BERT machine learning models are available on Huggingface: 
+1) Task 1 classifier - 6 main categories (personal coping stories, suicidal thoughts, suicide case reports, awareness tweets, prevention tweets & other tweets): https://huggingface.co/HubertBaginski/bert-twitter-main-categories
+2) Task 2 classifier: Is a tweet about actual suicide or not (off-topic, sarcastic, metaphors etc): https://huggingface.co/HubertBaginski/bert-twitter-about-suicide
 
 ### Folder structure
 
