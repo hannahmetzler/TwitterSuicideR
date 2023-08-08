@@ -8,7 +8,7 @@ All code for training the machine learning models is available at: https://githu
 ### Machine Learning Models
 
 The BERT machine learning models are available on Huggingface: 
-1) Task 1 classifier - 6 main categories (coping, suicidal ideation & attempts, prevention, awareness, suicide case reports, and all other tweets): https://huggingface.co/HubertBaginski/bert-twitter-main-categories
+1) Task 1 classifier - 6 main categories (coping, suicidal ideation & attempts, prevention, awareness, suicide case reports, and irrelevant (all other tweets)): https://huggingface.co/HubertBaginski/bert-twitter-main-categories
 2) Task 2 classifier: Is a tweet about actual suicide or off-topic (including, for example, sarcastic uses, metaphors, band names etc.): https://huggingface.co/HubertBaginski/bert-twitter-about-suicide
 
 ### Folder structure
